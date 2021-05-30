@@ -1,4 +1,6 @@
-import os
+import os, sys
+sys.path.append('tables')
+sys.path.append('checkbox')
 
 from checkbox import checkbox_detect, checkbox_util
 import json
@@ -6,11 +8,12 @@ from tables import table_analysis, util
 import template_extract
 
 # OUTDATED PATHS - update for new github
-blank_fpath = '/Users/portia/Documents/urop/test-doc-processing/demo_03_2021/blank_files/'
-template_fpath = '/Users/portia/Documents/urop/test-doc-processing/demo_03_2021/templates/'
-output_fpath = '/Users/portia/Documents/urop/test-doc-processing/demo_03_2021/output/'
-filled_fpath = '/Users/portia/Documents/urop/test-doc-processing/demo_03_2021/filled_files/'
-img_fpath = '/Users/portia/Documents/urop/test-doc-processing/demo_03_2021/img/'
+cwd = os.getcwd()
+blank_fpath = 'demo_files/'
+template_fpath = 'template/'
+output_fpath = 'output/'
+filled_fpath = 'filled_files/'
+img_fpath = cwd + '/img/'
 
 
 def get_file1(template_fname):
@@ -86,7 +89,7 @@ def read_file3(template_fname):
 def test_file3_and_file4():
     file4 = 'CCOEPURCHOFMACH&TOOLS.pdf'
 
-    fpath = '/Users/portia/Desktop/MIT/UROPS/Document Processing/Ryan/Certificates-blank'
+    fpath = 'Ryan_data/Certificates-blank'
 
     pdf_path = os.path.join(fpath, file4)
     im_paths = util.pdf_to_image(pdf_path)
@@ -101,7 +104,7 @@ def test_file3_and_file4():
 def test_table():
     file4 = 'CCOEPURCHOFMACH&TOOLS.pdf'
 
-    fpath = '/Users/portia/Desktop/MIT/UROPS/Document Processing/Ryan/Certificates-blank'
+    fpath = 'Ryan_data/Certificates-blank'
 
     pdf_path = os.path.join(fpath, file4)
     im_paths = util.pdf_to_image(pdf_path)
@@ -114,7 +117,7 @@ def test_table():
 
 
 def test_file3_table():
-    fpath = '/Users/portia/Documents/urop/test-doc-processing/demo_files/'
+    fpath = 'demo_files/'
     file3 = 'alaska-table.pdf'
 
     pdf_path = fpath + file3
@@ -128,7 +131,7 @@ def test_file3_table():
 
 
 def test_allfiles():
-    fpath = '/Users/portia/Desktop/MIT/UROPS/Document Processing/Ryan/Certificates-blank'
+    fpath = 'Ryan_data/Certificates-blank'
     for filename in os.listdir(fpath):
         if filename.endswith(".pdf"):
             # print(os.path.join(fpath, filename))
@@ -162,4 +165,4 @@ def final_demo():
 
 
 if __name__ == '__main__':
-    read_file3("file3_checkbox.json")
+    get_file1("file3_checkbox.json")
