@@ -74,11 +74,12 @@ def full_pdf_detection(path):
 def return_table(box):
     tables = []
     # take each box and compare it to all others
-    for i, (x, y, w, h) in enumerate(box):
+    for i, (x, y, w, h) in enumerate(box): # Box X
         found_vertical = False
         found_horizontal = False
 
-        for (a, b, c, d) in box[:i] + box[i + 1:]:
+        for (a, b, c, d) in box[:i] + box[i + 1:]: # Box A
+            # If Box A is 
             if abs(x-a) < 10 and not found_vertical:
                 if min(y, b) == y:
                     height = h
