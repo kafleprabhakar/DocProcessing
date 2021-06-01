@@ -212,7 +212,6 @@ def get_checkbox_label_basic(path, checkbox_dicts, clusters, fileout=None):
 
             try:
                 y_lowerbound = y_range[0] + cluster["y gaps"][i]
-
             except:
                 y_lowerbound = y_range[1] + 15
 
@@ -238,6 +237,7 @@ def get_checkbox_label_basic(path, checkbox_dicts, clusters, fileout=None):
                 label2 = (' ').join([d['text'][i] for i in range(len(d['text']))
                                  if (d['text'][i]!=' ' and d['text'][i] != '' and d['conf'][i] > 75)])
 
+                # Better way to detect error?
                 if len(label2) == 0:
                     label2 = "Error"
 

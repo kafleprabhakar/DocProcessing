@@ -39,7 +39,7 @@ def read_file1(template_fname):
     file1 = "full_table_FILLED.pdf"
 
     template_extract.extract_template(filled_fpath + file1, file1[:-4], template_fpath + template_fname, fpath_out=output_fpath,
-                     file_out=output_fpath + template_fname)
+                     file_out = output_fpath + template_fname)
 
 
 def get_file2(template_fname):
@@ -73,7 +73,7 @@ def get_file3(template_fname):
     vert_lines = checkbox_util.get_vertical_lines(im_paths[0])
 
     #result = get_horizontal_lines(im_paths[0], template_fpath + template_fname)
-    checkbox = checkbox_detect.checkbox_detect.checkbox_detect(im_paths[0], jsonFile=template_fpath + template_fname,
+    checkbox = checkbox_detect.checkbox_detect(im_paths[0], jsonFile=template_fpath + template_fname,
                                                              boundarylines = vert_lines, fileout=img_fpath+"f3_box")
 
 def read_file3(template_fname):
@@ -98,7 +98,7 @@ def test_file3_and_file4():
     checkbox = checkbox_detect.checkbox_detect(im_paths[0], showLabelBound=True, boundarylines = vert_lines)
     print(checkbox)
 
-    test_file3()
+    # test_file3()
 
 
 def test_table():
@@ -110,8 +110,9 @@ def test_table():
     im_paths = util.pdf_to_image(pdf_path)
 
     #result = get_horizontal_lines(im_paths[0], 'alaska-table.jpg')
+    vert_lines = checkbox_util.get_vertical_lines(im_paths[0], 'alaska-table.jpg')
     checkbox = checkbox_detect.checkbox_detect(im_paths[0], showLabelBound=True, boundarylines=vert_lines)
-    print(result)
+    print(checkbox)
 
 
 
@@ -125,7 +126,7 @@ def test_file3_table():
 
     #result = get_horizontal_lines(im_paths[0], 'alaska-table.jpg')
     checkbox = checkbox_detect.checkbox_detect(im_paths[0], showLabelBound=True, boundarylines=vert_lines)
-    print(result)
+    print(checkbox)
 
 
 
@@ -165,4 +166,7 @@ def final_demo():
 
 
 if __name__ == '__main__':
-    get_file1("file3_checkbox.json")
+    # read_file1("file3_checkbox.json")
+    # read_file3("file3_checkbox.json")
+    test_allfiles()
+    # test_file3_and_file4()

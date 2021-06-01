@@ -17,7 +17,7 @@ def check_duplicate_lines(lines):
 
 
 # returns all major horizontal lines, used for creating label boundaries
-def get_vertical_lines(path, show=False):
+def get_vertical_lines(path, show=False, show_duration=1000):
     img = cv2.imread(path, 0)
 
     im_color_line = cv2.imread(path)
@@ -53,6 +53,6 @@ def get_vertical_lines(path, show=False):
 
     if show:
         cv2.imshow('vertical lines', img_resize)
-        cv2.waitKey(1000)
+        cv2.waitKey(show_duration)
 
     return lines

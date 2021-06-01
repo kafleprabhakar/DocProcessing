@@ -10,7 +10,7 @@ def extract_template(file_in, fname, template_file, fpath_out, file_out):
 
     im_paths = util.pdf_to_image(file_in)
 
-    path = im_paths[0]
+    path = im_paths[0] # Take only the first page
 
     img = cv2.imread(path, 0)
 
@@ -58,7 +58,7 @@ def extract_template(file_in, fname, template_file, fpath_out, file_out):
 
 
     if "checkbox" in template_json:
-        output["checkbox"] = checkbox_detection_function_2.checkbox_read(path, template_json["checkbox"])
+        output["checkbox"] = checkbox_detect.checkbox_read(path, template_json["checkbox"])
 
 
     util.edit_json(file_out, output)

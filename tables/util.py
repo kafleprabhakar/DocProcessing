@@ -1,3 +1,4 @@
+import os
 import json
 from pdf2image import convert_from_path
 
@@ -16,8 +17,10 @@ def edit_json(jsonFile, newData):
 
 def pdf_to_image(pdf_path):
     images = convert_from_path(pdf_path)
+    filename = os.path.basename(pdf_path).split('.')[0]
     paths = []
     for i in range(len(images)):
-        images[i].save(str(i) + '.jpg', 'JPEG')
-        paths.append(str(i) + '.jpg')
+        img_name = 'img/filename_' + str(i) + '.jpg'
+        images[i].save(img_name, 'JPEG')
+        paths.append(img_name)
     return paths
