@@ -4,7 +4,7 @@ import math
 
 
 # removes all duplicate boxes
-def check_duplicate_lines(lines):
+def remove_duplicate_lines(lines):
     final_lines = []
     for line in lines:
         duplicate = False
@@ -40,7 +40,7 @@ def get_vertical_lines(path, show=False, show_duration=1000):
     lines = cv2.HoughLinesP(vertical_lines, 30, math.pi / 2, 100, None, 20, 1)
 
     lines = lines.squeeze()
-    lines = check_duplicate_lines(lines)
+    lines = remove_duplicate_lines(lines)
 
     for line in lines:
         pt1 = (line[0], line[1])

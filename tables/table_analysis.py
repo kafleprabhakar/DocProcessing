@@ -25,7 +25,7 @@ def check_duplicate_boxes(box):
 
 
 # remove overlapping lines
-def check_duplicate_lines(lines):
+def remove_duplicate_lines(lines):
     final_lines = []
     for line in lines:
         duplicate = False
@@ -79,7 +79,7 @@ def return_table(box):
         found_horizontal = False
 
         for (a, b, c, d) in box[:i] + box[i + 1:]: # Box A
-            # If Box A is 
+            # If Box A is adjacent to box X vertically
             if abs(x-a) < 10 and not found_vertical:
                 if min(y, b) == y:
                     height = h
@@ -88,7 +88,7 @@ def return_table(box):
 
                 if abs(y - b) < height + 5:
                     found_vertical = True
-
+            # If Box A is adjacent to box X horizontally
             elif abs(y-b) < 10 and not found_horizontal:
                 if min(x, a) == x:
                     width = w
@@ -107,6 +107,10 @@ def return_table(box):
 # only look at lines that are over 50% width of page
 # sort lines, return clusters of lines
 def cluster_horizontal_lines(lines):
+    """
+    Returns a list of list where each list is a cluster of lines within 100 pixels
+    of one other and sorted in order of their y coordinate
+    """
     sorted_lines = sorted(lines, key=lambda x: x[1])
     #print(sorted_lines)
 
@@ -130,11 +134,16 @@ def cluster_horizontal_lines(lines):
 
 
 def sort_horizontal_contours(contours):
+    """
+    Returns the bounding rectangle of all the contours sorted by y, then by x.
+        - Also for contours side by side  within a distance of 10 are merged
+    """
     all_coord = []
     # creates list of x,y,w,h comp
     for i in range(len(contours)):
         all_coord.append(cv2.boundingRect(contours[i]))
 
+    # Sorting
     print('*****')
     print('original {x}'.format(x=all_coord))
     all_coord.sort(key=lambda all_coord: all_coord[0])
@@ -145,17 +154,18 @@ def sort_horizontal_contours(contours):
     print(all_coord)
 
     all_coord_final = []
-    #for i in range(len(all_coord)-1):
     i = 0
     combined_contour = []
 
     print(len(all_coord))
+
+    # Merge contours if needed and add to all_coord_final
     while i < len(all_coord):
         print(i)
         if len(combined_contour) == 0:
             combined_contour = list(all_coord[i])
 
-        # check if x+w is within 5 of the next x --> combine into one contour
+        # check if x+w is within 10 of the next x --> combine into one contour
         if i < len(all_coord)-1 and all_coord[i][0]+all_coord[i][2] >= (all_coord[i+1][0]-10):
             # adjust width and height to include the next one over
             print(True)
@@ -213,8 +223,8 @@ def get_horizontal_lines(path, jsonFile=None):
 
 
     lines = cv2.HoughLinesP(horizontal_lines, 30, math.pi/2, 0, None, 30, 1)
-    lines = lines.squeeze()
-    lines = check_duplicate_lines(lines)
+    lines = lines.squeeze() # Why squeeze?
+    lines = remove_duplicate_lines(lines)
     #print(lines.shape)
     # filter for size
     lines2 = []
@@ -344,7 +354,7 @@ def get_horizontal_lines(path, jsonFile=None):
                     print(text)
                     if text in data:
                         if text not in seen:
-                            seen[text]=1
+                            seen[text] = 1
                         else:
                             seen[text] += 1
 
@@ -387,12 +397,14 @@ def get_horizontal_lines(path, jsonFile=None):
         x,y,w,h = data[i]
         cv2.rectangle(im_color, (x, y), (x+w, y+h), (255, 0, 0), 2)
 
-    #cv2.imwrite(fpath+outfile, im_color)
+    # cv2.imwrite(fpath+outfile, im_color)
 
     dims = im_color.shape
     img_resize = cv2.resize(im_color, (int(dims[1] / 3), int(dims[0] / 3)))
 
     cv2.imshow('horizontal lines', img_resize)
+    cv2.imwrite('testing.jpg', im_color)
+    print('Saving color image')
     #cv2.imshow('horizontal lines 1', im_color)
 
     cv2.waitKey(2000)
@@ -408,7 +420,7 @@ def get_horizontal_lines(path, jsonFile=None):
 
     return label, data
 
-def check_table(path):
+def check_table(path, outfile=None):
     PACKAGE_DIR = os.path.dirname(__file__)
 
     img = cv2.imread(path, 0)
@@ -486,8 +498,12 @@ def check_table(path):
     #cv2.imwrite(fpath + 'multi_image.jpg', im_color)
 
     cv2.imshow('im color', img_color_1)
-    cv2.waitKey(5000)
+    cv2.waitKey(2000)
     cv2.destroyAllWindows()
+    
+    if outfile:
+        cv2.imwrite(outfile, im_color)
+        print('Saving color image')
 
     # Creating two lists to define row and column in which cell is located
     row = []
@@ -548,7 +564,7 @@ def check_table(path):
                     countcol = countcol
 
             # Retrieving the center of each column
-            center = [int(row[i][j][0] + row[i][j][2] / 2) for j in range(len(row[i])) if row[0]]
+            center = [int(row[i][j][0] + row[i][j][2] / 2) for j in range(len(row[i])) if row[0]] # ??????????? what's i?
             center = np.array(center)
             center.sort()
 
@@ -560,7 +576,7 @@ def check_table(path):
                 for k in range(countcol):
                     lis.append([])
                 for j in range(len(row[i])):
-                    diff = abs(center - (row[i][j][0] + row[i][j][2] / 4))
+                    diff = abs(center - (row[i][j][0] + row[i][j][2] / 4)) # ????????? What is going on here?
                     minimum = min(diff)
                     indexing = list(diff).index(minimum)
                     lis[indexing].append(row[i][j])
@@ -568,6 +584,7 @@ def check_table(path):
 
             print('UNIFORM TABLE FOUND')
             return [finalboxes, row, countcol]
+            # Ideally I guess you would want to store final boxes in json file
 
 
 def read_tables(path, finalboxes, row, countcol, fpath="", csv_name = "", template_name=""):

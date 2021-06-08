@@ -170,3 +170,4 @@ if __name__ == '__main__':
     # read_file3("file3_checkbox.json")
     test_allfiles()
     # test_file3_and_file4()
+    get_template(fpath, table_fpath, csv_fname, template_fname)

@@ -225,9 +225,10 @@ def get_checkbox_label_basic(path, checkbox_dicts, clusters, fileout=None):
             y_upperbound = y_lowerbound - 15
 
             if crop.shape[1] != 0:
-                cv2.imshow("crop", crop)
-                cv2.waitKey(2000)
-                cv2.destroyAllWindows()
+                # if plot:
+                #     cv2.imshow("crop", crop)
+                #     cv2.waitKey(2000)
+                #     cv2.destroyAllWindows()
 
                 label = pytesseract.image_to_string(crop)
                 checkbox_dicts[box["number"]]["label"] = label
