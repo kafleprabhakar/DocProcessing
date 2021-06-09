@@ -6,6 +6,7 @@ from checkbox import checkbox_detect, checkbox_util
 import json
 from tables import table_analysis, util
 import template_extract
+import random
 
 # OUTDATED PATHS - update for new github
 cwd = os.getcwd()
@@ -25,9 +26,9 @@ def make_checkbox_template(filename):
 
     im_paths = util.pdf_to_image(pdf_path)
 
-    # checkbox = checkbox_detect.checkbox_detect(im_paths[0], jsonFile=template,
-    #                                                          fileout=output_path)
-    checkbox = checkbox_detect.checkbox_detect(im_paths[0], fileout=output_path, plot=False)
+    checkbox = checkbox_detect.checkbox_detect(im_paths[0], jsonFile=template,
+                                                             fileout=output_path)
+    # checkbox = checkbox_detect.checkbox_detect(im_paths[0], fileout=output_path, plot=True)
 
 def extract_checkbox_data(filename, template_fname):
     name = os.path.basename(filename).split('.')[0]
@@ -58,9 +59,11 @@ def make_table_template(filename, table_type="uniform"):
 
 
 if __name__ == "__main__":
+    # files = list(filter(lambda filename: filename.endswith(".pdf"), os.listdir(blank_fpath)))
+    # make_checkbox_template(random.choice(files))
     # make_checkbox_template("multi-jurisdiction.pdf")
-    # extract_checkbox_data("multi-jurisdiction_filled.pdf", "multi-jurisdiction.json")
-    make_table_template("alabama_blank.pdf", table_type="non-uniform")
+    extract_checkbox_data("multi-jurisdiction_filled.pdf", "multi-jurisdiction.json")
+    # make_table_template("alabama_blank.pdf", table_type="non-uniform")
     
     # for filename in os.listdir(blank_fpath):
     #     if filename.endswith(".pdf"):
