@@ -6,6 +6,7 @@ import json
 from typing import List, Tuple, Dict, Union
 from base.box import Box
 from base.customEncoder import CustomEncoder
+from checkbox_util import save_data_to_json
 
 
 def find_inner_checkbox(checkboxes: List[Box], approx: Box, thold: int = 2) -> bool:
@@ -132,10 +133,10 @@ def checkbox_detect(path, ratio=0.015, delta=12, side_length_range=(16,51), plot
     print('Number of checkboxes found: ', len(checkboxes))
     if len(checkboxes) == 0:
         return
+
     # Create one dictionary per checkbox - contains num in order, coordinates, percent filled
     # Sort in descending order
     checkbox_dicts = []
-
     for i in range(len(checkboxes) - 1, -1, -1):
         new_dic = dict()
         new_dic['number'] = len(checkboxes) - i
@@ -143,18 +144,15 @@ def checkbox_detect(path, ratio=0.015, delta=12, side_length_range=(16,51), plot
         new_dic['percent_filled'] = None
         checkbox_dicts.append(new_dic)
 
-    # Take the center of each check box and
-    # Find the minimum checkbox size
+    # Find the percent filled for each checkbox
     min_height, min_width = minimum_box_dimensions(checkboxes)
-    total_min_pixels = min_height * min_width
-
     font = cv2.FONT_HERSHEY_COMPLEX_SMALL
 
     for box_dict in checkbox_dicts:
         box = box_dict['box']
         center = box.get_center().astype(int)
-
         percent = get_percent_filled(threshold, center, min_width, min_height)
+
         box_dict['percent_filled'] = percent
         cv2.putText(im, str(percent), (center[0] - 60, center[1] + 5), font, 1.2, (0, 0, 255), thickness=2)
 
@@ -167,20 +165,20 @@ def checkbox_detect(path, ratio=0.015, delta=12, side_length_range=(16,51), plot
 
     checkbox_dicts = get_unique_checkboxes(checkbox_dicts)
     clusters = cluster_checkbox(checkbox_dicts, im, showLabelBound, boundarylines)
-
     add_checkbox_label(path, checkbox_dicts, clusters, fileout=fileout)
 
     if jsonFile:
-        try:
-            with open(jsonFile, "r") as file:
-                data = json.load(file)
-        except:
-            data = {}
+        save_data_to_json(checkbox_dicts, jsonFile, 'checkbox')
+        # try:
+        #     with open(jsonFile, "r") as file:
+        #         data = json.load(file)
+        # except:
+        #     data = {}
 
-        data['checkbox'] = checkbox_dicts
+        # data['checkbox'] = checkbox_dicts
 
-        with open(jsonFile, "w") as file:
-            json.dump(data, file, cls= CustomEncoder)
+        # with open(jsonFile, "w") as file:
+        #     json.dump(data, file, cls= CustomEncoder)
 
     return checkbox_dicts
 
@@ -308,8 +306,6 @@ def cluster_checkbox(checkbox_dicts, im=None, showLabelBound=False, boundaryline
         if min_x not in seen_x:
             seen_x[min_x] = []
         seen_x[min_x].append(checkbox)
-
-
 
     clusters = {}
     count = 0

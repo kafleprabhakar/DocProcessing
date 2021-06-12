@@ -1,6 +1,9 @@
 import cv2
 import numpy as np
 import math
+import json
+from base.customEncoder import CustomEncoder
+
 
 
 # removes all duplicate boxes
@@ -56,3 +59,15 @@ def get_vertical_lines(path, show=False, show_duration=1000):
         cv2.waitKey(show_duration)
 
     return lines
+
+def save_data_to_json(data, filename, key):
+    try:
+        with open(filename, "r") as file:
+            prev_data = json.load(file)
+    except:
+        prev_data = {}
+
+    prev_data[key] = data
+
+    with open(filename, "w") as file:
+        json.dump(prev_data, file, cls= CustomEncoder)
