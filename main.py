@@ -8,7 +8,6 @@ from tables import table_analysis, util
 import template_extract
 import random
 
-# OUTDATED PATHS - update for new github
 cwd = os.getcwd()
 # blank_fpath = 'Ryan_data/ExemptionCertificatesRyan/'
 blank_fpath = 'demo_files/'
@@ -22,12 +21,14 @@ def make_checkbox_template(filename):
 
     template = template_fpath + name + '.json'
     output_path = img_fpath + 'checkbox/' + name
-    pdf_path = blank_fpath + filename
+    pdf_path = filled_fpath + filename
 
     im_paths = util.pdf_to_image(pdf_path)
 
+    vert_lines = checkbox_util.get_vertical_lines(im_paths[0])
+
     checkbox = checkbox_detect.checkbox_detect(im_paths[0], jsonFile=template,
-                                                             fileout=output_path)
+                                                             fileout=output_path, boundarylines=vert_lines)
     # checkbox = checkbox_detect.checkbox_detect(im_paths[0], fileout=output_path, plot=True)
 
 def extract_checkbox_data(filename, template_fname):
@@ -39,9 +40,9 @@ def extract_checkbox_data(filename, template_fname):
                      file_out = output_file)
 
 def make_table_template(filename, table_type="uniform"):
-    pdf_path = blank_fpath + filename
+    pdf_path = filled_fpath + filename
     name = os.path.basename(filename).split('.')[0]
-    img_path = img_fpath + 'table/' + name + '.jpg'
+    img_path = img_fpath + name + '.jpg'
     csv_fname = name + "_" + table_type + '.csv'
     template_fname = name + "_" + table_type + '.json'
 
@@ -57,13 +58,15 @@ def make_table_template(filename, table_type="uniform"):
         result = table_analysis.get_horizontal_lines(im_paths[0], output_fpath + template_fname)
         print("The final results: ", result)
 
+# def extract_table_data(filename, template_fname):
+
 
 if __name__ == "__main__":
     # files = list(filter(lambda filename: filename.endswith(".pdf"), os.listdir(blank_fpath)))
     # make_checkbox_template(random.choice(files))
-    # make_checkbox_template("multi-jurisdiction.pdf")
-    extract_checkbox_data("multi-jurisdiction_filled.pdf", "multi-jurisdiction.json")
-    # make_table_template("alabama_blank.pdf", table_type="non-uniform")
+    # make_checkbox_template("alaska_FILLED.pdf")
+    # extract_checkbox_data("alaska_FILLED.pdf", "alaska-table.json")
+    make_table_template("exemption_filled.pdf", table_type="uniform")
     
     # for filename in os.listdir(blank_fpath):
     #     if filename.endswith(".pdf"):

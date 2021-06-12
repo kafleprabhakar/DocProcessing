@@ -654,7 +654,7 @@ def read_tables(path, finalboxes, row, countcol, fpath="", csv_name = "", templa
                             empty_boxes[j] = {}
                         empty_boxes[j][i] = finalboxes[i][j][0]
 
-                outer.append(inner)
+                outer.append(inner.strip().replace('\n', ' '))
 
 
     # Creating a dataframe of the generated OCR list

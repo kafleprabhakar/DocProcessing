@@ -51,20 +51,12 @@ def minimum_box_dimensions(checkboxes: List[Box]) -> Tuple[int]:
     return int(min_height), int(min_width)
 
 
-#updating range to 16-51
-# delta from 4 to 12
-def checkbox_detect(path, ratio=0.015, delta=12, side_length_range=(16,51), plot=True, fileout=None,
-                    jsonFile = None,  showLabelBound=None, boundarylines=None):
+def find_checkboxes(threshold: np.ndarray, ratio: float, delta: int,\
+                    side_length_range: Tuple[int]) -> List[Box]:
     """
-    Detects checkboxes in the image in the given path
+    Given a threshold image, returns the checkboxes in the image
     """
-    im = cv2.imread(path)
-    imgray = cv2.imread(path, 0)
-
-    _, threshold = cv2.threshold(imgray, 200, 255, cv2.THRESH_BINARY)
-
     contours, _ = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
     checkboxes = []
 
     for cnt in contours:
@@ -76,18 +68,70 @@ def checkbox_detect(path, ratio=0.015, delta=12, side_length_range=(16,51), plot
             width = approx_box.get_width()
             height = approx_box.get_height()
 
-            # If the box is a square within a given range
+            # If the box is a square within a given size range and delta
             if abs(height - width) < delta and width in range(*side_length_range) and height in range(*side_length_range):
                 if not checkboxes or find_inner_checkbox(checkboxes, approx_box):
                     
                     checkboxes.append(approx_box)
-                    cv2.drawContours(im, [approx], 0, (0, 255, 0))
+    return checkboxes
 
-    print('Number of checkboxes found: {num}'.format(num=len(checkboxes)))
 
+def draw_contours(im: np.ndarray, contours: List[Box]):
+    """
+    Given an image and a list of boxes, draws them on the image
+    """
+    contours = [np.reshape(box.get_vertices(), (-1, 1, 2)) for box in contours]
+    for contour in contours:
+        cv2.drawContours(im, [contour], 0, (0, 255, 0))
+
+
+def show_image(im: np.ndarray, name: str = "Image", delay: int = 2000) -> None:
+    """
+    Displays the given image.
+    --------
+    name: name of the window frame
+    delay: number of milliseconds to display the image
+    """
+    cv2.imshow('im', im)
+
+    cv2.waitKey(2000)
+    cv2.destroyAllWindows()
+
+def get_percent_filled(threshold: np.ndarray, center: np.ndarray, min_width: int,\
+                       min_height: int) -> float:
+    """
+    Sees the area of size min_width x min_height centered around `center` and returns
+    the percentage of the area that is filled
+    """
+    total_pixels = min_height * min_width
+    half_width, half_height = int(min_width / 2), int(min_height / 2)
+    count = 0
+    for i in range(center[0] - half_width, center[0] + half_width):
+        for j in range(center[1] - half_height, center[1] + half_height):
+            # fill in area if white - used for debugging
+            if threshold[j][i] > 200:
+                threshold[j][i] = 100
+            # if pixel is black, add to count
+            if threshold[j][i] < 5:
+                count += 1
+    return round(count / total_pixels, 1)
+
+
+def checkbox_detect(path, ratio=0.015, delta=12, side_length_range=(16,51), plot=True, fileout=None,
+                    jsonFile = None,  showLabelBound=None, boundarylines=None):
+    """
+    Detects checkboxes in the image in the given path
+    """
+    im = cv2.imread(path)
+    imgray = cv2.imread(path, 0)
+    _, threshold = cv2.threshold(imgray, 200, 255, cv2.THRESH_BINARY)
+    
+    checkboxes = find_checkboxes(threshold, ratio, delta, side_length_range)
+    draw_contours(im, checkboxes)
+
+    print('Number of checkboxes found: ', len(checkboxes))
     if len(checkboxes) == 0:
         return
-
     # Create one dictionary per checkbox - contains num in order, coordinates, percent filled
     # Sort in descending order
     checkbox_dicts = []
@@ -96,67 +140,35 @@ def checkbox_detect(path, ratio=0.015, delta=12, side_length_range=(16,51), plot
         new_dic = dict()
         new_dic['number'] = len(checkboxes) - i
         new_dic['box'] = checkboxes[i]
-        # new_dic['coordinates'] = checkboxes[i].get_vertices().ravel()
         new_dic['percent_filled'] = None
         checkbox_dicts.append(new_dic)
 
     # Take the center of each check box and
     # Find the minimum checkbox size
     min_height, min_width = minimum_box_dimensions(checkboxes)
-
-    w = int(min_width / 2)
-    h = int(min_height / 2)
-
     total_min_pixels = min_height * min_width
+
     font = cv2.FONT_HERSHEY_COMPLEX_SMALL
 
     for box_dict in checkbox_dicts:
         box = box_dict['box']
-        count = 0
         center = box.get_center().astype(int)
 
-        for i in range(center[0] - w, center[0] + w):
-            for j in range(center[1] - h, center[1] + h):
-                # fill in area if white - used for debugging
-                if threshold[j][i] > 200:
-                    threshold[j][i] = 100
-                # if pixel is black, add to count
-                if threshold[j][i] < 5:
-                    count += 1
-        percent = round(count / total_min_pixels, 1) # Percentage of pixels that're black
-
+        percent = get_percent_filled(threshold, center, min_width, min_height)
         box_dict['percent_filled'] = percent
-
-        txt = str(percent)
-        cv2.putText(im, txt, (center[0] - 60, center[1] + 5), font, 1.2, (0, 0, 255), thickness=2)
+        cv2.putText(im, str(percent), (center[0] - 60, center[1] + 5), font, 1.2, (0, 0, 255), thickness=2)
 
     if fileout:
         save_img = str(fileout) + '_1.jpg'
         cv2.imwrite(save_img, im)
 
     if plot:
-        print('Plotting')
-        dims = im.shape
-        print(dims)
-        im1 = cv2.resize(im, (int(dims[1] / 3), int(dims[0] / 3)))
-        im2 = cv2.resize(threshold, (int(dims[1] / 2.2), int(dims[0] / 2.2)))
-        # cv2.imshow('im', im)
-        cv2.imshow('im', im1)
+        show_image(im)
 
-        #cv2.imshow('threshold', im2)
-
-        cv2.waitKey(2000)
-        cv2.destroyAllWindows()
-
-    checkbox_dicts = check_overlap(checkbox_dicts)
+    checkbox_dicts = get_unique_checkboxes(checkbox_dicts)
     clusters = cluster_checkbox(checkbox_dicts, im, showLabelBound, boundarylines)
 
-    print(checkbox_dicts)
-    print(clusters)
-    get_checkbox_label_basic(path, checkbox_dicts, clusters, fileout=fileout)
-
-    # for dic in checkbox_dicts:
-    #     dic['coordinates'] = [int(coord) for coord in dic['coordinates']]
+    add_checkbox_label(path, checkbox_dicts, clusters, fileout=fileout)
 
     if jsonFile:
         try:
@@ -170,12 +182,11 @@ def checkbox_detect(path, ratio=0.015, delta=12, side_length_range=(16,51), plot
         with open(jsonFile, "w") as file:
             json.dump(data, file, cls= CustomEncoder)
 
-    # make a dictionary of checkboxes and percent filled
     return checkbox_dicts
 
 
 # Type of checkbox: List[Dict[str, Union[int, List[float], Box, float]]]
-def check_overlap(checkbox_dicts):
+def get_unique_checkboxes(checkbox_dicts):
     """
     Returns a dict of checkboxes after replacing all the overlapping checkboxes by single unique one
     """
@@ -194,7 +205,7 @@ def check_overlap(checkbox_dicts):
     return unique_checkboxes
 
 
-def get_checkbox_label_basic(path, checkbox_dicts, clusters, fileout=None):
+def add_checkbox_label(path, checkbox_dicts, clusters, fileout=None, show_labels_box=True):
     """
     Detects the label of the checkboxes in `checkbox_dicts` and modifies the dictionary by adding
     the property `label` to each checkbox mapping to the detected label.
@@ -245,11 +256,10 @@ def get_checkbox_label_basic(path, checkbox_dicts, clusters, fileout=None):
                 print(label.strip())
                 checkbox['label'] = label2
 
-    if fileout:
-        cv2.imshow("final", im)
-        cv2.waitKey(2000)
-        cv2.destroyAllWindows()
+    if show_labels_box:
+        show_image(im, name="Labels")
 
+    if fileout:
         cv2.imwrite(fileout+"_labels.jpg", im)
 
 
@@ -260,17 +270,8 @@ def checkbox_read(path, checkbox_dicts):
     _, threshold = cv2.threshold(imgray, 200, 255, cv2.THRESH_BINARY)
 
     data = {}
-
     checkboxes = [Box(checkbox['box']) for checkbox in checkbox_dicts]
-    # for dic in checkbox_dict:
-    #     checkboxes.append(dic['coordinates'])
-
     min_height, min_width = minimum_box_dimensions(checkboxes)
-
-    w = int(min_width / 2)
-    h = int(min_height / 2)
-
-    total_min_pixels = min_height * min_width
     font = cv2.FONT_HERSHEY_COMPLEX_SMALL
 
     for box_dict in checkbox_dicts:
@@ -278,20 +279,8 @@ def checkbox_read(path, checkbox_dicts):
         count = 0
         center = box.get_center().astype(int)
 
-        for i in range(center[0] - w, center[0] + w):
-            for j in range(center[1] - h, center[1] + h):
-                # fill in area if white - used for debugging
-                if threshold[j][i] > 200:
-                    threshold[j][i] = 100
-                # if pixel is black, add to count
-                if threshold[j][i] < 5:
-                    count += 1
-        percent = round(count / total_min_pixels, 1) # Percentage of pixels that're black
-
-        if percent > 0.15:
-            data[box_dict['label']] = True
-        else:
-            data[box_dict['label']] = False
+        percent = get_percent_filled(threshold, center, min_width, min_height)
+        data[box_dict['label']] = percent > 0.15
 
     return data
 
