@@ -8,6 +8,9 @@ import json
 from tables import table_analysis, util
 import template_extract
 from base.box import Box
+import pprint
+import pytesseract
+from pytesseract import Output
 
 
 cwd = os.getcwd()
@@ -32,16 +35,7 @@ if __name__ == "__main__":
     im = cv2.imread(path)
     imgray = cv2.imread(path, 0)
 
-    _, threshold = cv2.threshold(imgray, 200, 255, cv2.THRESH_BINARY)
+    img = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
 
-    contours, _ = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-    # print('contours', contours)
-
-    cnt = contours[0]
-    ratio=0.015
-    approx = cv2.approxPolyDP(cnt, ratio * cv2.arcLength(cnt, True), True)
-    approx_box = Box(approx)
-    print('approx', approx)
-    print('approx ravel', approx.ravel())
-    print('box: ', approx_box)
+    d = pytesseract.image_to_data(img, output_type=Output.DICT)
+    pprint.pprint(d)

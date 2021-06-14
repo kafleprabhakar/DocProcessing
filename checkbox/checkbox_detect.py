@@ -169,16 +169,6 @@ def checkbox_detect(path, ratio=0.015, delta=12, side_length_range=(16,51), plot
 
     if jsonFile:
         save_data_to_json(checkbox_dicts, jsonFile, 'checkbox')
-        # try:
-        #     with open(jsonFile, "r") as file:
-        #         data = json.load(file)
-        # except:
-        #     data = {}
-
-        # data['checkbox'] = checkbox_dicts
-
-        # with open(jsonFile, "w") as file:
-        #     json.dump(data, file, cls= CustomEncoder)
 
     return checkbox_dicts
 
