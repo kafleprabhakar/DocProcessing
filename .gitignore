@@ -3,3 +3,4 @@ template/*
 img/*
 output/*
 .DS_Store
+server/upload/*

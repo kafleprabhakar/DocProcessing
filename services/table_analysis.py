@@ -666,10 +666,8 @@ def read_tables(path, finalboxes, row, countcol, fpath="", csv_name = "", templa
 
         final_data = {'uniform_table':empty_boxes, "df_file": fpath+csv_name}
 
-
         jsonFile = fpath+template_name
 
         util.edit_json(jsonFile, final_data)
 
-
-    return df
+    return df.to_dict()

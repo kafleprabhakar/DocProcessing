@@ -16,6 +16,7 @@ def edit_json(jsonFile, newData):
 
 
 def pdf_to_image(pdf_path):
+    print('the pdf path', pdf_path)
     images = convert_from_path(pdf_path)
     filename = os.path.basename(pdf_path).split('.')[0]
     paths = []

@@ -1,21 +1,24 @@
+import os
 import pandas as pd
 import cv2
-from checkbox import checkbox_detect, checkbox_util
+from services import checkbox_detect, checkbox_util, table_analysis, util
+# from checkbox import checkbox_detect, checkbox_util
 import json
-from tables import table_analysis, util
+# from tables import table_analysis, util
 import pytesseract
 
 
-def extract_template(file_in, fname, template_file, fpath_out, file_out):
+def extract_template(path, file_in, template_file, fpath_out, file_out):
+    fname = os.path.basename(file_in).split('.')[0]
+    # print('the file to convert:', file_in)
+    # im_paths = util.pdf_to_image(file_in)
 
-    im_paths = util.pdf_to_image(file_in)
-
-    path = im_paths[0] # Take only the first page
+    # path = im_paths[0] # Take only the first page
 
     img = cv2.imread(path, 0)
 
     output = {}
-
+    print('Template file: ', template_file)
     with open(template_file, "r+") as file:
         template_json = json.load(file)
 
@@ -62,4 +65,5 @@ def extract_template(file_in, fname, template_file, fpath_out, file_out):
 
 
     util.edit_json(file_out, output)
+    return output
 
