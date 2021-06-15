@@ -1,11 +1,12 @@
 import os, sys
-sys.path.append('tables')
-sys.path.append('checkbox')
+# sys.path.append('tables')
+sys.path.append('services')
 
-from checkbox import checkbox_detect, checkbox_util
+from services import checkbox_detect, checkbox_util, table_analysis, util, template_extract
+# from checkbox import checkbox_detect, checkbox_util
 import json
-from tables import table_analysis, util
-import template_extract
+# from tables import table_analysis, util
+# import template_extract
 import random
 
 cwd = os.getcwd()
@@ -35,9 +36,12 @@ def extract_data(filename, template_fname):
     name = os.path.basename(filename).split('.')[0]
     output_file = output_fpath + name + '.json'
     template_file = template_fpath + template_fname
+    file_path = filled_fpath + filename
+    im_paths = util.pdf_to_image(file_path)
 
-    template_extract.extract_template(filled_fpath + filename, name, template_file, fpath_out=output_fpath,
+    result = template_extract.extract_template(im_paths[0], file_path, template_file, fpath_out=output_fpath,
                      file_out = output_file)
+    print(result)
 
 def make_table_template(filename, table_type="uniform"):
     pdf_path = filled_fpath + filename
@@ -66,9 +70,9 @@ if __name__ == "__main__":
     # filename = filled_fpath + "alaska_FILLED.pdf"
     # files = list(filter(lambda filename: filename.endswith(".pdf"), os.listdir(blank_fpath)))
     # make_checkbox_template(random.choice(files))
-    make_checkbox_template(filename)
+    # make_checkbox_template(filename)
     # extract_data("alaska_FILLED.pdf", "alaska-table.json")
-    # make_table_template("exemption_filled.pdf", table_type="uniform")
+    make_table_template("exemption_filled.pdf", table_type="uniform")
     
     # for filename in os.listdir(blank_fpath):
     #     if filename.endswith(".pdf"):
