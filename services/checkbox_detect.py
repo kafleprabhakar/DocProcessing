@@ -7,6 +7,7 @@ from typing import List, Tuple, Dict, Union
 from base.box import Box
 from base.customEncoder import CustomEncoder
 from checkbox_util import save_data_to_json
+from util import draw_contours, show_image, get_document_segmentation
 
 
 def find_inner_checkbox(checkboxes: List[Box], approx: Box, thold: int = 2) -> bool:
@@ -77,27 +78,6 @@ def find_checkboxes(threshold: np.ndarray, ratio: float, delta: int,\
     return checkboxes
 
 
-def draw_contours(im: np.ndarray, contours: List[Box]):
-    """
-    Given an image and a list of boxes, draws them on the image
-    """
-    contours = [np.reshape(box.get_vertices(), (-1, 1, 2)) for box in contours]
-    for contour in contours:
-        cv2.drawContours(im, [contour], 0, (0, 255, 0))
-
-
-def show_image(im: np.ndarray, name: str = "Image", delay: int = 2000) -> None:
-    """
-    Displays the given image.
-    --------
-    name: name of the window frame
-    delay: number of milliseconds to display the image
-    """
-    cv2.imshow('im', im)
-
-    cv2.waitKey(2000)
-    cv2.destroyAllWindows()
-
 def get_percent_filled(threshold: np.ndarray, center: np.ndarray, min_width: int,\
                        min_height: int) -> float:
     """
@@ -164,13 +144,44 @@ def checkbox_detect(path, ratio=0.015, delta=12, side_length_range=(16,51), plot
         show_image(im)
 
     checkbox_dicts = get_unique_checkboxes(checkbox_dicts)
+    add_checkbox_label_new(path, checkbox_dicts, saveImg=fileout)
     clusters = cluster_checkbox(checkbox_dicts, im, showLabelBound, boundarylines)
-    add_checkbox_label(path, checkbox_dicts, clusters, fileout=fileout)
+    # add_checkbox_label(path, checkbox_dicts, clusters, fileout=fileout)
 
     if jsonFile:
         save_data_to_json(checkbox_dicts, jsonFile, 'checkbox')
 
     return checkbox_dicts
+
+
+def add_checkbox_label_new(path: str, checkboxes, plot: bool = True, saveImg: str = None) -> None:
+    """
+    Given the image path and the list of checkboxes detected in the image, augments each checkbox with
+    the label found in the image.
+    """
+    segments = get_document_segmentation(path)
+    image = cv2.imread(path)
+    print('----- New label algorithm -----')
+    for checkbox in checkboxes:
+        # Need a method to narrow it down if there are multiple segments of interests
+        segments_of_interests = [segment for segment in segments if segment.contains(checkbox['box'])]
+        focus_segment = segments_of_interests[0]
+        top_left, bottom_right = focus_segment.get_box_endpoints()
+
+        if plot or saveImg:
+            cv2.rectangle(image, top_left, bottom_right, (36,255,12), 2)
+        
+        focus_img = image[top_left[1]: bottom_right[1], top_left[0]: bottom_right[0]]
+        label = pytesseract.image_to_string(focus_img).strip().replace('\n', ' ')
+        checkbox['label'] = label
+
+        # print(label)
+
+    if plot:
+        show_image(image, name="Checkboxes and their labels")
+    if saveImg:
+        cv2.imwrite(saveImg + "_with_labels.jpg", image)
+        
 
 
 # Type of checkbox: List[Dict[str, Union[int, List[float], Box, float]]]

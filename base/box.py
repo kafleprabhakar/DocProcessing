@@ -40,6 +40,10 @@ class Box:
     
     def get_vertices(self):
         return copy.deepcopy(self.vertices)
+    
+    def get_box_endpoints(self):
+        top_left, bottom_right = list(zip(self.get_X_range(), self.get_Y_range()))
+        return top_left, bottom_right
 
     def check_overlap(self, other):
         self_X = self.get_X_range()
@@ -49,6 +53,16 @@ class Box:
         other_Y = other.get_Y_range()
 
         return not (self_X[0] > other_X[1] or other_X[0] > self_X[1]) and not (self_Y[0] > other_Y[1] or other_Y[0] > self_Y[1])
+    
+    def contains(self, other):
+        self_X = self.get_X_range()
+        self_Y = self.get_Y_range()
+
+        other_X = other.get_X_range()
+        other_Y = other.get_Y_range()
+
+        return self_X[0] <= other_X[0] and self_Y[0] <= other_Y[0] and self_X[1] >= other_X[1] and self_Y[1] >= other_Y[1]
+
 
     def __str__(self):
         return str(self.vertices.tolist())
