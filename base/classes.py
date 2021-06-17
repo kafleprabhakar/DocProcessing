@@ -14,12 +14,6 @@ class Box:
         self.Y = np.array([flat_vertices[i] for i in range(len(flat_vertices)) if i%2 == 1])
         self.vertices = np.array(list(zip(self.X, self.Y)))
     
-    def get_X(self):
-        return self.X.copy()
-    
-    def get_Y(self):
-        return self.Y.copy()
-
     def get_X_range(self):
         return np.array([self.X.min(), self.X.max()])
 
@@ -72,3 +66,21 @@ class Box:
 
     def __hash__(self):
         return hash(str(self.vertices))
+
+
+class Checkbox:
+    """ Represents a checkbox in the document """
+    def __init__(self, box: Box, percent_filled: float = None, label: str = None, patch: Box = None):
+        self.box = box
+        self.percent_filled = percent_filled
+        self.label = label
+        self.patch = patch
+    
+    def set_percent_filled(self, percent_filled: float) -> None:
+        self.percent_filled = percent_filled
+    
+    def set_label(self, label: str) -> None:
+        self.label = label
+    
+    def set_patch(self, patch: Box) -> None:
+        self.patch = patch

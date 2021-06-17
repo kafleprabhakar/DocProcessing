@@ -35,16 +35,6 @@ def find_inner_checkbox(checkboxes: List[Box], approx: Box, thold: int = 2) -> b
     return True
 
 
-# Splits the X and Y pixel coordinates from the checkbox
-def split_X_Y(box):
-    """
-    Splits the X and Y pixel coordinates from the box
-    """
-    x = [box[i] for i in range(len(box)) if i%2 == 0]
-    y = [box[i] for i in range(len(box)) if i%2 == 1]
-    return x, y
-
-
 # Find the minimum dimensions of the
 def minimum_box_dimensions(checkboxes: List[Box]) -> Tuple[int]:
     min_height = min([box.get_height() for box in checkboxes])
@@ -350,7 +340,6 @@ def cluster_checkbox(checkbox_dicts, im=None, showLabelBound=False, boundaryline
         previous_box = None
         for checkbox in seen_x[x]:
             box = checkbox['box']
-            # x, y = split_X_Y(box['coordinates'])
             box_top_y = box.get_Y_range()[0]
             box_left_x = box.get_X_range()[0]
             prev_bottom_y = previous_box.get_Y_range()[1] if previous_box else None
