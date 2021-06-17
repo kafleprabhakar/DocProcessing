@@ -8,7 +8,7 @@ from services import checkbox_detect, checkbox_util, table_analysis, util
 import json
 # from tables import table_analysis, util
 import template_extract
-from base.box import Box
+from base.classes import Box
 import pprint
 import pytesseract
 from pytesseract import Output
@@ -29,7 +29,7 @@ img_fpath = cwd + '/img/'
 
 if __name__ == "__main__":
     # file_in = 'multi-jurisdiction.pdf'
-    file_in = 'Wisconsin_blank.pdf'
+    file_in = 'alaska-table.pdf'
 
     pdf_path = blank_fpath + file_in
     im_paths = util.pdf_to_image(pdf_path)
@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     # Create rectangular structuring element and dilate
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (10, 3))
-    dilate = cv2.dilate(thresh, kernel, iterations=5)
+    dilate = cv2.dilate(thresh, kernel, iterations=4)
 
     # Find contours and draw rectangle
     cnts = cv2.findContours(dilate, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)

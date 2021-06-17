@@ -1,5 +1,5 @@
 import json
-from base.box import Box
+from base.classes import Box
 import numpy as np
 
 class CustomEncoder(json.JSONEncoder):

@@ -4,7 +4,7 @@ import pytesseract
 from pytesseract import Output
 import json
 from typing import List, Tuple, Dict, Union
-from base.box import Box
+from base.classes import Box
 from base.customEncoder import CustomEncoder
 from checkbox_util import save_data_to_json
 from util import draw_contours, show_image, get_document_segmentation
@@ -144,14 +144,15 @@ def checkbox_detect(path, ratio=0.015, delta=12, side_length_range=(16,51), plot
         show_image(im)
 
     checkbox_dicts = get_unique_checkboxes(checkbox_dicts)
-    add_checkbox_label_new(path, checkbox_dicts, saveImg=fileout)
-    clusters = cluster_checkbox(checkbox_dicts, im, showLabelBound, boundarylines)
+    add_checkbox_label_new(path, checkbox_dicts, saveImg=fileout, plot=True)
+    clusters = cluster_checkboxes_new(path, checkbox_dicts, saveImg=fileout)
+    # clusters = cluster_checkbox(checkbox_dicts, im, showLabelBound, boundarylines)
     # add_checkbox_label(path, checkbox_dicts, clusters, fileout=fileout)
 
     if jsonFile:
-        save_data_to_json(checkbox_dicts, jsonFile, 'checkbox')
+        save_data_to_json(clusters, jsonFile, 'checkbox')
 
-    return checkbox_dicts
+    return clusters
 
 
 def add_checkbox_label_new(path: str, checkboxes, plot: bool = True, saveImg: str = None) -> None:
@@ -159,8 +160,8 @@ def add_checkbox_label_new(path: str, checkboxes, plot: bool = True, saveImg: st
     Given the image path and the list of checkboxes detected in the image, augments each checkbox with
     the label found in the image.
     """
-    segments = get_document_segmentation(path)
     image = cv2.imread(path)
+    segments = get_document_segmentation(image)
     print('----- New label algorithm -----')
     for checkbox in checkboxes:
         # Need a method to narrow it down if there are multiple segments of interests
@@ -174,7 +175,7 @@ def add_checkbox_label_new(path: str, checkboxes, plot: bool = True, saveImg: st
         focus_img = image[top_left[1]: bottom_right[1], top_left[0]: bottom_right[0]]
         label = pytesseract.image_to_string(focus_img).strip().replace('\n', ' ')
         checkbox['label'] = label
-
+        checkbox['patch'] = focus_segment
         # print(label)
 
     if plot:
@@ -183,6 +184,38 @@ def add_checkbox_label_new(path: str, checkboxes, plot: bool = True, saveImg: st
         cv2.imwrite(saveImg + "_with_labels.jpg", image)
         
 
+def cluster_checkboxes_new(path: str, checkboxes, plot: bool = False, saveImg: str = None):
+    """
+    Given the path of the image and all the checkboxes detected in the image, clusters
+    the checkboxes together based on the proximity of their checkbox-label patch segment.
+    -----
+    Returns: list of clusters where each cluster is a list of checkboxes in that cluster
+    """
+    image = cv2.imread(path)
+    print('Image shape', np.array(image).shape)
+    patch_image = np.ones(np.array(image).shape, np.uint8) * 255
+    
+    # Draw boxes of the checkbox patches in the blank patch_image
+    for checkbox in checkboxes:
+        patch = checkbox['patch']
+        top_left, bottom_right = patch.get_box_endpoints()
+        cv2.rectangle(patch_image, top_left, bottom_right, (0,0,0), 2)
+
+    # Dilate the above patch image so that patches close together are clustered together
+    patch_grouping = get_document_segmentation(patch_image, dilate_kernel_size=(1, 8))
+    clusters = []
+    for patch in patch_grouping:
+        top_left, bottom_right = patch.get_box_endpoints()
+        cluster = [checkbox for checkbox in checkboxes if patch.contains(checkbox['patch'])]
+        clusters.append(cluster)
+        cv2.rectangle(image, top_left, bottom_right, (36, 255, 12), 2)
+
+    if plot:
+        show_image(image, name="Black boxed patches")
+    if saveImg:
+        cv2.imwrite(saveImg + "_with_labels_clusters.jpg", image)
+
+    return clusters
 
 # Type of checkbox: List[Dict[str, Union[int, List[float], Box, float]]]
 def get_unique_checkboxes(checkbox_dicts):

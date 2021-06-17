@@ -1,8 +1,8 @@
 import os
 import json
 from pdf2image import convert_from_path
-from typing import List
-from base.box import Box
+from typing import List, Tuple
+from base.classes import Box
 import numpy as np
 import cv2
 
@@ -31,18 +31,18 @@ def pdf_to_image(pdf_path: str) -> List[str]:
     return paths
 
 
-def get_document_segmentation(path: str) -> List[Box]:
+def get_document_segmentation(image, dilate_kernel_size: Tuple[int, int] = (10, 4)) -> List[Box]:
     """
-    Given a path to an image of a document, divides the document into different segments
+    Given an image of a document, divides the document into different segments
     by grouping close elements together and returns a list of boxes for those segments
     """
-    image = cv2.imread(path)
+    padding = (-dilate_kernel_size[0] + 1, -dilate_kernel_size[1] + 1, dilate_kernel_size[0] - 1, dilate_kernel_size[1] - 1)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (7,7), 0)
     thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
 
     # Create rectangular structuring element and dilate
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (10, 3))
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, dilate_kernel_size)
     dilate = cv2.dilate(thresh, kernel, iterations=4)
 
     # Find contours and draw rectangle
@@ -51,7 +51,10 @@ def get_document_segmentation(path: str) -> List[Box]:
     boxes = []
     for c in cnts:
         x,y,w,h = cv2.boundingRect(c)
-        boxes.append(Box((x, y, x + w, y + h)))
+        vertices = (x, y, x + w, y + h)
+        # Remove the padding so we have a tighter bound the enclosing area and clear enough space between the patches
+        vertices = tuple(vertices[i] - padding[i] for i in range(4))
+        boxes.append(Box(vertices))
         
     
     return boxes
