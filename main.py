@@ -1,12 +1,8 @@
 import os, sys
-# sys.path.append('tables')
 sys.path.append('services')
 
 from services import checkbox_detect, checkbox_util, table_analysis, util, template_extract
-# from checkbox import checkbox_detect, checkbox_util
 import json
-# from tables import table_analysis, util
-# import template_extract
 import random
 
 cwd = os.getcwd()
@@ -28,8 +24,8 @@ def make_checkbox_template(filename):
 
     vert_lines = checkbox_util.get_vertical_lines(im_paths[0])
 
-    checkbox = checkbox_detect.checkbox_detect(im_paths[0], jsonFile=template,
-                                                             fileout=output_path, boundarylines=vert_lines)
+    checkbox = checkbox_detect.checkbox_detect(im_paths[0], jsonFile=template, fileout=output_path)
+    print(checkbox)
     # checkbox = checkbox_detect.checkbox_detect(im_paths[0], fileout=output_path, plot=True)
 
 def extract_data(filename, template_fname):

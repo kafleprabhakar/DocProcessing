@@ -2,7 +2,7 @@ import numpy as np
 import copy
 
 class Box:
-    """ Represents the bounding box of the polygon passed """
+    """ Represents the immutable bounding box of the polygon passed """
     def __init__(self, vertices):
         """
         vertices: list of vertices either as [x1, y1, x2, y2, ..] or [[x1,y1], [x2,y2], ..]
@@ -57,9 +57,14 @@ class Box:
 
         return self_X[0] <= other_X[0] and self_Y[0] <= other_Y[0] and self_X[1] >= other_X[1] and self_Y[1] >= other_Y[1]
 
+    def _to_json(self):
+        return self.get_vertices().tolist()
 
     def __str__(self):
         return str(self.vertices.tolist())
+
+    def __repr__(self):
+        return f'Box({str(self)})'
 
     def __eq__(self, other):
         return np.allclose(self.get_X_range(), other.get_X_range()) and np.allclose(self.get_Y_range(), other.get_Y_range())
@@ -84,3 +89,22 @@ class Checkbox:
     
     def set_patch(self, patch: Box) -> None:
         self.patch = patch
+    
+    def get_box(self) -> Box:
+        return self.box
+    
+    def get_patch_box(self) -> Box:
+        return self.patch
+
+    def _to_json(self):
+        return {
+            'box': self.box,
+            'label': self.label,
+            'percent_filled': self.percent_filled
+        }
+
+    def __str__(self):
+        return str(self._to_json())
+
+    def __repr__(self):
+        return f'Checkbox({self.box}, label={self.label})'

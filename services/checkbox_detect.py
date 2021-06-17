@@ -3,21 +3,21 @@ import cv2
 import pytesseract
 from pytesseract import Output
 import json
-from typing import List, Tuple, Dict, Union
-from base.classes import Box
+from typing import List, Tuple, Dict, Union, Optional
+from base.classes import Box, Checkbox
 from base.customEncoder import CustomEncoder
 from checkbox_util import save_data_to_json
 from util import draw_contours, show_image, get_document_segmentation
 
 
-def find_inner_checkbox(checkboxes: List[Box], approx: Box, thold: int = 2) -> bool:
+def find_inner_checkbox(checkboxes: List[Checkbox], approx: Box, thold: int = 2) -> bool:
     """
     returns: True if the box `approx` can be safely added to the list `checkboxes`. A box is safe
             if no other smaller box overlaps too much with it (determined by threshold)
     - Also deletes any box which is larger than this box and overlaps too much
     """
     for i in range(len(checkboxes) - 1, -1, -1):
-        box = checkboxes[i]
+        box = checkboxes[i].get_box()
         box_center = box.get_center()
         box_area = box.get_area()
 
@@ -37,6 +37,9 @@ def find_inner_checkbox(checkboxes: List[Box], approx: Box, thold: int = 2) -> b
 
 # Find the minimum dimensions of the
 def minimum_box_dimensions(checkboxes: List[Box]) -> Tuple[int]:
+    """
+    Returns a tuple of minimum height and width among the given boxes
+    """
     min_height = min([box.get_height() for box in checkboxes])
     min_width = min([box.get_width() for box in checkboxes])
 
@@ -44,7 +47,7 @@ def minimum_box_dimensions(checkboxes: List[Box]) -> Tuple[int]:
 
 
 def find_checkboxes(threshold: np.ndarray, ratio: float, delta: int,\
-                    side_length_range: Tuple[int]) -> List[Box]:
+                    side_length_range: Tuple[int, int]) -> List[Checkbox]:
     """
     Given a threshold image, returns the checkboxes in the image
     """
@@ -64,7 +67,7 @@ def find_checkboxes(threshold: np.ndarray, ratio: float, delta: int,\
             if abs(height - width) < delta and width in range(*side_length_range) and height in range(*side_length_range):
                 if not checkboxes or find_inner_checkbox(checkboxes, approx_box):
                     
-                    checkboxes.append(approx_box)
+                    checkboxes.append(Checkbox(approx_box))
     return checkboxes
 
 
@@ -88,8 +91,8 @@ def get_percent_filled(threshold: np.ndarray, center: np.ndarray, min_width: int
     return round(count / total_pixels, 1)
 
 
-def checkbox_detect(path, ratio=0.015, delta=12, side_length_range=(16,51), plot=True, fileout=None,
-                    jsonFile = None,  showLabelBound=None, boundarylines=None):
+def checkbox_detect(path: str, ratio: float = 0.015, delta: int = 12, side_length_range: Tuple[int, int] = (16,51),
+                    plot: bool = True, fileout: Optional[str] = None, jsonFile: Optional[str] = None) -> List[List[Checkbox]]:
     """
     Detects checkboxes in the image in the given path
     """
@@ -98,32 +101,24 @@ def checkbox_detect(path, ratio=0.015, delta=12, side_length_range=(16,51), plot
     _, threshold = cv2.threshold(imgray, 200, 255, cv2.THRESH_BINARY)
     
     checkboxes = find_checkboxes(threshold, ratio, delta, side_length_range)
-    draw_contours(im, checkboxes)
+    checkbox_boxes = [checkbox.get_box() for checkbox in checkboxes]
+    draw_contours(im, checkbox_boxes)
 
     print('Number of checkboxes found: ', len(checkboxes))
     if len(checkboxes) == 0:
         return
 
-    # Create one dictionary per checkbox - contains num in order, coordinates, percent filled
-    # Sort in descending order
-    checkbox_dicts = []
-    for i in range(len(checkboxes) - 1, -1, -1):
-        new_dic = dict()
-        new_dic['number'] = len(checkboxes) - i
-        new_dic['box'] = checkboxes[i]
-        new_dic['percent_filled'] = None
-        checkbox_dicts.append(new_dic)
-
     # Find the percent filled for each checkbox
-    min_height, min_width = minimum_box_dimensions(checkboxes)
+    min_height, min_width = minimum_box_dimensions(checkbox_boxes)
     font = cv2.FONT_HERSHEY_COMPLEX_SMALL
 
-    for box_dict in checkbox_dicts:
-        box = box_dict['box']
+    for checkbox in checkboxes:
+        box = checkbox.get_box()
         center = box.get_center().astype(int)
         percent = get_percent_filled(threshold, center, min_width, min_height)
 
-        box_dict['percent_filled'] = percent
+        # box_dict['percent_filled'] = percent
+        checkbox.set_percent_filled(percent)
         cv2.putText(im, str(percent), (center[0] - 60, center[1] + 5), font, 1.2, (0, 0, 255), thickness=2)
 
     if fileout:
@@ -133,11 +128,9 @@ def checkbox_detect(path, ratio=0.015, delta=12, side_length_range=(16,51), plot
     if plot:
         show_image(im)
 
-    checkbox_dicts = get_unique_checkboxes(checkbox_dicts)
-    add_checkbox_label_new(path, checkbox_dicts, saveImg=fileout, plot=True)
-    clusters = cluster_checkboxes_new(path, checkbox_dicts, saveImg=fileout)
-    # clusters = cluster_checkbox(checkbox_dicts, im, showLabelBound, boundarylines)
-    # add_checkbox_label(path, checkbox_dicts, clusters, fileout=fileout)
+    checkboxes = get_unique_checkboxes(checkboxes)
+    add_checkbox_label(path, checkboxes, saveImg=fileout, plot=True)
+    clusters = cluster_checkboxes(path, checkboxes, saveImg=fileout)
 
     if jsonFile:
         save_data_to_json(clusters, jsonFile, 'checkbox')
@@ -145,7 +138,7 @@ def checkbox_detect(path, ratio=0.015, delta=12, side_length_range=(16,51), plot
     return clusters
 
 
-def add_checkbox_label_new(path: str, checkboxes, plot: bool = True, saveImg: str = None) -> None:
+def add_checkbox_label(path: str, checkboxes: List[Checkbox], plot: bool = True, saveImg: Optional[str] = None) -> None:
     """
     Given the image path and the list of checkboxes detected in the image, augments each checkbox with
     the label found in the image.
@@ -155,7 +148,7 @@ def add_checkbox_label_new(path: str, checkboxes, plot: bool = True, saveImg: st
     print('----- New label algorithm -----')
     for checkbox in checkboxes:
         # Need a method to narrow it down if there are multiple segments of interests
-        segments_of_interests = [segment for segment in segments if segment.contains(checkbox['box'])]
+        segments_of_interests = [segment for segment in segments if segment.contains(checkbox.get_box())]
         focus_segment = segments_of_interests[0]
         top_left, bottom_right = focus_segment.get_box_endpoints()
 
@@ -164,9 +157,9 @@ def add_checkbox_label_new(path: str, checkboxes, plot: bool = True, saveImg: st
         
         focus_img = image[top_left[1]: bottom_right[1], top_left[0]: bottom_right[0]]
         label = pytesseract.image_to_string(focus_img).strip().replace('\n', ' ')
-        checkbox['label'] = label
-        checkbox['patch'] = focus_segment
-        # print(label)
+        
+        checkbox.set_label(label)
+        checkbox.set_patch(focus_segment)
 
     if plot:
         show_image(image, name="Checkboxes and their labels")
@@ -174,7 +167,7 @@ def add_checkbox_label_new(path: str, checkboxes, plot: bool = True, saveImg: st
         cv2.imwrite(saveImg + "_with_labels.jpg", image)
         
 
-def cluster_checkboxes_new(path: str, checkboxes, plot: bool = False, saveImg: str = None):
+def cluster_checkboxes(path: str, checkboxes: List[Checkbox], plot: bool = False, saveImg: Optional[str] = None) -> List[List[Checkbox]]:
     """
     Given the path of the image and all the checkboxes detected in the image, clusters
     the checkboxes together based on the proximity of their checkbox-label patch segment.
@@ -187,7 +180,7 @@ def cluster_checkboxes_new(path: str, checkboxes, plot: bool = False, saveImg: s
     
     # Draw boxes of the checkbox patches in the blank patch_image
     for checkbox in checkboxes:
-        patch = checkbox['patch']
+        patch = checkbox.get_patch_box()
         top_left, bottom_right = patch.get_box_endpoints()
         cv2.rectangle(patch_image, top_left, bottom_right, (0,0,0), 2)
 
@@ -196,7 +189,7 @@ def cluster_checkboxes_new(path: str, checkboxes, plot: bool = False, saveImg: s
     clusters = []
     for patch in patch_grouping:
         top_left, bottom_right = patch.get_box_endpoints()
-        cluster = [checkbox for checkbox in checkboxes if patch.contains(checkbox['patch'])]
+        cluster = [checkbox for checkbox in checkboxes if patch.contains(checkbox.get_patch_box())]
         clusters.append(cluster)
         cv2.rectangle(image, top_left, bottom_right, (36, 255, 12), 2)
 
@@ -208,26 +201,25 @@ def cluster_checkboxes_new(path: str, checkboxes, plot: bool = False, saveImg: s
     return clusters
 
 # Type of checkbox: List[Dict[str, Union[int, List[float], Box, float]]]
-def get_unique_checkboxes(checkbox_dicts):
+def get_unique_checkboxes(checkboxes: List[Checkbox]) -> List[Checkbox]:
     """
     Returns a dict of checkboxes after replacing all the overlapping checkboxes by single unique one
     """
     unique_checkboxes = []
     idxs_to_remove = []
-    new_idx = 0
-    for i, checkbox in enumerate(checkbox_dicts):
+    for i, checkbox in enumerate(checkboxes):
         if i not in idxs_to_remove:
-            checkbox["number"] = new_idx
-            new_idx += 1
+            # checkbox["number"] = new_idx
+            # new_idx += 1
             unique_checkboxes.append(checkbox)
-        for j, other_checkbox in enumerate(checkbox_dicts):
-            if i != j and checkbox['box'].check_overlap(other_checkbox['box']):
+        for j, other_checkbox in enumerate(checkboxes):
+            if i != j and checkbox.get_box().check_overlap(other_checkbox.get_box()):
                 idxs_to_remove.append(j)
     
     return unique_checkboxes
 
 
-def add_checkbox_label(path, checkbox_dicts, clusters, fileout=None, show_labels_box=True):
+def add_checkbox_label_old(path, checkbox_dicts, clusters, fileout=None, show_labels_box=True):
     """
     Detects the label of the checkboxes in `checkbox_dicts` and modifies the dictionary by adding
     the property `label` to each checkbox mapping to the detected label.
@@ -307,7 +299,7 @@ def checkbox_read(path, checkbox_dicts):
     return data
 
 # cluster based on x coord
-def cluster_checkbox(checkbox_dicts, im=None, showLabelBound=False, boundarylines=None):
+def cluster_checkbox_old(checkbox_dicts, im=None, showLabelBound=False, boundarylines=None):
     """
     Clusters the checkboxes in `checkbox_dicts` based on their left x coordinates and y-gap between
     other checkboxes.
