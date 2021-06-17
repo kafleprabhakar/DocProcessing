@@ -62,12 +62,12 @@ def make_table_template(filename, table_type="uniform"):
 
 
 if __name__ == "__main__":
-    filename = blank_fpath + "Wisconsin_blank.pdf"
+    # filename = blank_fpath + "Wisconsin_blank.pdf"
     # filename = filled_fpath + "alaska_FILLED.pdf"
     # files = list(filter(lambda filename: filename.endswith(".pdf"), os.listdir(blank_fpath)))
     # make_checkbox_template(random.choice(files))
-    make_checkbox_template(filename)
-    # extract_data("alaska_FILLED.pdf", "alaska-table.json")
+    # make_checkbox_template(filename)
+    extract_data("Wisconsin.pdf", "Wisconsin_blank.json")
     # make_table_template("exemption_filled.pdf", table_type="uniform")
     
     # for filename in os.listdir(blank_fpath):

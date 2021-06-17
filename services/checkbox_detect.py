@@ -278,12 +278,13 @@ def add_checkbox_label_old(path, checkbox_dicts, clusters, fileout=None, show_la
 
 
 # reads from output of above file
-def checkbox_read(path, checkbox_dicts):
+def checkbox_read(path, checkbox_clusters):
 
     imgray = cv2.imread(path, 0)
     _, threshold = cv2.threshold(imgray, 200, 255, cv2.THRESH_BINARY)
 
     data = {}
+    checkbox_dicts = [checkbox for cluster in checkbox_clusters for checkbox in cluster]
     checkboxes = [Box(checkbox['box']) for checkbox in checkbox_dicts]
     min_height, min_width = minimum_box_dimensions(checkboxes)
     font = cv2.FONT_HERSHEY_COMPLEX_SMALL
