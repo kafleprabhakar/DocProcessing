@@ -91,7 +91,7 @@ def get_percent_filled(threshold: np.ndarray, center: np.ndarray, min_width: int
 
 
 def checkbox_detect(path: str, ratio: float = 0.015, delta: int = 12, side_length_range: Tuple[int, int] = (16,51),
-                    plot: bool = True, fileout: Optional[str] = None, jsonFile: Optional[str] = None) -> List[List[Checkbox]]:
+                    plot: bool = True, fileout: Optional[str] = None, jsonFile: Optional[str] = None) -> Tuple[List[List[Checkbox]], str]:
     """
     Detects checkboxes in the image in the given path
     """
@@ -128,19 +128,21 @@ def checkbox_detect(path: str, ratio: float = 0.015, delta: int = 12, side_lengt
         show_image(im)
 
     checkboxes = get_unique_checkboxes(checkboxes)
-    add_checkbox_label(path, checkboxes, saveImg=fileout, plot=True)
+    patch_image = add_checkbox_label(path, checkboxes, saveImg=fileout, plot=True)
     clusters = cluster_checkboxes(path, checkboxes, saveImg=fileout)
 
     if jsonFile:
         save_data_to_json(clusters, jsonFile, 'checkbox')
 
-    return clusters
+    return clusters, patch_image
 
 
-def add_checkbox_label(path: str, checkboxes: List[Checkbox], plot: bool = True, saveImg: Optional[str] = None) -> None:
+def add_checkbox_label(path: str, checkboxes: List[Checkbox], plot: bool = True, saveImg: Optional[str] = None) -> str:
     """
     Given the image path and the list of checkboxes detected in the image, augments each checkbox with
     the label found in the image.
+    -----
+    Returns: image path of checkbox-label patches plotted on it if saveImg is set to a string, else empty string
     """
     image = cv2.imread(path)
     segments = get_document_segmentation(image)
@@ -160,10 +162,13 @@ def add_checkbox_label(path: str, checkboxes: List[Checkbox], plot: bool = True,
         checkbox.set_label(label)
         checkbox.set_patch(focus_segment)
 
+    imgFileName = ''
     if plot:
         show_image(image, name="Checkboxes and their labels")
     if saveImg:
-        cv2.imwrite(saveImg + "_with_labels.jpg", image)
+        imgFileName = saveImg + "_with_labels.jpg"
+        cv2.imwrite(imgFileName, image)
+    return imgFileName
         
 
 def cluster_checkboxes(path: str, checkboxes: List[Checkbox], plot: bool = False, saveImg: Optional[str] = None) -> List[List[Checkbox]]:
@@ -195,7 +200,8 @@ def cluster_checkboxes(path: str, checkboxes: List[Checkbox], plot: bool = False
     if plot:
         show_image(image, name="Black boxed patches")
     if saveImg:
-        cv2.imwrite(saveImg + "_with_labels_clusters.jpg", image)
+        imgFileName = saveImg + "_with_labels_clusters.jpg"
+        cv2.imwrite(imgFileName, image)
 
     return clusters
 

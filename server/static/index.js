@@ -2,6 +2,7 @@ const formElement = document.getElementById('upload-form');
 const responseContainer = document.getElementById('response-container');
 const fileInput = document.getElementById('document');
 const htmlForm = document.getElementById('parsed-form');
+const imgContainer = document.getElementById('image-container');
 
 formElement.addEventListener('submit', (e) => handleFormSubmit(e));
 
@@ -39,6 +40,13 @@ function makeHTMLForm(data) {
   }
 }
 
+function addImage(imgPath) {
+  const image = document.createElement('img');
+  image.setAttribute('src', imgPath);
+  image.classList.add('processed-image');
+  imgContainer.appendChild(image);
+}
+
 function handleFormSubmit(e) {
   e.preventDefault();
   console.log(e);
@@ -52,7 +60,7 @@ function handleFormSubmit(e) {
   }).then(response => response.json())
     .then(data => {
       // responseContainer.innerHTML = JSON.stringify(data, null, 2);
-      makeHTMLForm(data);
-      PR.prettyPrint();
+      makeHTMLForm(data.clusters);
+      addImage(data.image);
     });
 }

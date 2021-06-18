@@ -24,7 +24,7 @@ def make_checkbox_template(filename):
 
     vert_lines = util.get_vertical_lines(im_paths[0])
 
-    checkbox = checkbox_detect.checkbox_detect(im_paths[0], jsonFile=template, fileout=output_path)
+    checkbox, _ = checkbox_detect.checkbox_detect(im_paths[0], jsonFile=template, fileout=output_path)
     print(checkbox)
     # checkbox = checkbox_detect.checkbox_detect(im_paths[0], fileout=output_path, plot=True)
 

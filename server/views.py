@@ -1,6 +1,6 @@
 import os
 from server import flask_app as app
-from server.settings import UPLOAD_FOLDER
+from server.settings import UPLOAD_FOLDER, OUTPUT_FOLDER
 from flask import request, Response, jsonify, render_template
 import json
 
@@ -24,7 +24,12 @@ def process():
     im_paths = util.pdf_to_image(filename)
 
     if action == 'checkbox':
-        response = checkbox_detect.checkbox_detect(im_paths[0], plot=False)
+        clusters, img = checkbox_detect.checkbox_detect(im_paths[0], plot=False, fileout=OUTPUT_FOLDER + name)
+        image_path = '/static/outputs/' + os.path.basename(img)
+        response = {
+            'clusters': clusters,
+            'image': image_path
+        }
     elif action == 'uniform_table':
         result = table_analysis.check_table(im_paths[0]) #check for uniform table
         csv_fname = name + "_uniform.csv"
