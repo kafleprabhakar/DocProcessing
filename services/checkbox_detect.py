@@ -67,6 +67,7 @@ def find_checkboxes(threshold: np.ndarray, ratio: float, delta: int,\
                 if not checkboxes or find_inner_checkbox(checkboxes, approx_box):
                     
                     checkboxes.append(Checkbox(approx_box))
+    checkboxes.reverse() # The contours returned by opencv if from bottom to up
     return checkboxes
 
 
@@ -203,6 +204,7 @@ def cluster_checkboxes(path: str, checkboxes: List[Checkbox], plot: bool = False
         imgFileName = saveImg + "_with_labels_clusters.jpg"
         cv2.imwrite(imgFileName, image)
 
+    clusters.reverse() # The contours returned by opencv if from bottom to up
     return clusters
 
 # Type of checkbox: List[Dict[str, Union[int, List[float], Box, float]]]

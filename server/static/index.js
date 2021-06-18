@@ -41,6 +41,7 @@ function makeHTMLForm(data) {
 }
 
 function addImage(imgPath) {
+  imgContainer.innerHTML = '';
   const image = document.createElement('img');
   image.setAttribute('src', imgPath);
   image.classList.add('processed-image');

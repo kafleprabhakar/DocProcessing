@@ -33,7 +33,7 @@ def pdf_to_image(pdf_path: str) -> List[str]:
     return paths
 
 
-def get_document_segmentation(image, dilate_kernel_size: Tuple[int, int] = (10, 4)) -> List[Box]:
+def get_document_segmentation(image, dilate_kernel_size: Tuple[int, int] = (10, 3)) -> List[Box]:
     """
     Given an image of a document, divides the document into different segments
     by grouping close elements together and returns a list of boxes for those segments
