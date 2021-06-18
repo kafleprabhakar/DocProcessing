@@ -2,7 +2,7 @@ import os, sys
 sys.path.append('tables')
 sys.path.append('checkbox')
 
-from checkbox import checkbox_detect, checkbox_util
+from checkbox import checkbox_detect, util
 import json
 from tables import table_analysis, util
 import template_extract
@@ -70,7 +70,7 @@ def get_file3(template_fname):
     pdf_path = blank_fpath + file3
     im_paths = util.pdf_to_image(pdf_path)
 
-    vert_lines = checkbox_util.get_vertical_lines(im_paths[0])
+    vert_lines = util.get_vertical_lines(im_paths[0])
 
     #result = get_horizontal_lines(im_paths[0], template_fpath + template_fname)
     checkbox = checkbox_detect.checkbox_detect(im_paths[0], jsonFile=template_fpath + template_fname,
@@ -94,7 +94,7 @@ def test_file3_and_file4():
     pdf_path = os.path.join(fpath, file4)
     im_paths = util.pdf_to_image(pdf_path)
 
-    vert_lines = checkbox_util.get_vertical_lines(im_paths[0])
+    vert_lines = util.get_vertical_lines(im_paths[0])
     checkbox = checkbox_detect.checkbox_detect(im_paths[0], showLabelBound=True, boundarylines = vert_lines)
     print(checkbox)
 
@@ -110,7 +110,7 @@ def test_table():
     im_paths = util.pdf_to_image(pdf_path)
 
     #result = get_horizontal_lines(im_paths[0], 'alaska-table.jpg')
-    vert_lines = checkbox_util.get_vertical_lines(im_paths[0], 'alaska-table.jpg')
+    vert_lines = util.get_vertical_lines(im_paths[0], 'alaska-table.jpg')
     checkbox = checkbox_detect.checkbox_detect(im_paths[0], showLabelBound=True, boundarylines=vert_lines)
     print(checkbox)
 

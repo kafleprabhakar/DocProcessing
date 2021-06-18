@@ -6,8 +6,7 @@ import json
 from typing import List, Tuple, Dict, Union, Optional
 from base.classes import Box, Checkbox
 from base.customEncoder import CustomEncoder
-from checkbox_util import save_data_to_json
-from util import draw_contours, show_image, get_document_segmentation
+from util import draw_contours, show_image, get_document_segmentation, save_data_to_json
 
 
 def find_inner_checkbox(checkboxes: List[Checkbox], approx: Box, thold: int = 2) -> bool:

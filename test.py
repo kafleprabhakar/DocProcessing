@@ -3,8 +3,8 @@ sys.path.append('services')
 # sys.path.append('checkbox')
 import cv2
 
-from services import checkbox_detect, checkbox_util, table_analysis, util
-# from checkbox import checkbox_detect, checkbox_util
+from services import checkbox_detect, util, table_analysis
+# from checkbox import checkbox_detect, util
 import json
 # from tables import table_analysis, util
 import template_extract

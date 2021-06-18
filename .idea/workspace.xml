@@ -28,7 +28,7 @@
         </entry>
       </file>
       <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/checkbox/checkbox_util.py">
+        <entry file="file://$PROJECT_DIR$/checkbox/util.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="60">
               <caret line="4" selection-start-line="4" selection-end-line="4" />
@@ -56,7 +56,7 @@
       <list>
         <option value="$PROJECT_DIR$/tables/table_analysis.py" />
         <option value="$PROJECT_DIR$/checkbox/checkbox_detect.py" />
-        <option value="$PROJECT_DIR$/checkbox/checkbox_util.py" />
+        <option value="$PROJECT_DIR$/checkbox/util.py" />
       </list>
     </option>
   </component>
@@ -256,7 +256,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/checkbox/checkbox_util.py">
+    <entry file="file://$PROJECT_DIR$/checkbox/util.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="60">
           <caret line="4" selection-start-line="4" selection-end-line="4" />

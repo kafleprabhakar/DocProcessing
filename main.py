@@ -1,7 +1,7 @@
 import os, sys
 sys.path.append('services')
 
-from services import checkbox_detect, checkbox_util, table_analysis, util, template_extract
+from services import checkbox_detect, table_analysis, util, template_extract
 import json
 import random
 
@@ -22,7 +22,7 @@ def make_checkbox_template(filename):
 
     im_paths = util.pdf_to_image(filename)
 
-    vert_lines = checkbox_util.get_vertical_lines(im_paths[0])
+    vert_lines = util.get_vertical_lines(im_paths[0])
 
     checkbox = checkbox_detect.checkbox_detect(im_paths[0], jsonFile=template, fileout=output_path)
     print(checkbox)
@@ -63,11 +63,11 @@ def make_table_template(filename, table_type="uniform"):
 
 if __name__ == "__main__":
     # filename = blank_fpath + "Wisconsin_blank.pdf"
-    # filename = filled_fpath + "alaska_FILLED.pdf"
+    filename = filled_fpath + "alaska_FILLED.pdf"
     # files = list(filter(lambda filename: filename.endswith(".pdf"), os.listdir(blank_fpath)))
     # make_checkbox_template(random.choice(files))
-    # make_checkbox_template(filename)
-    extract_data("Wisconsin.pdf", "Wisconsin_blank.json")
+    make_checkbox_template(filename)
+    # extract_data("Wisconsin.pdf", "Wisconsin_blank.json")
     # make_table_template("exemption_filled.pdf", table_type="uniform")
     
     # for filename in os.listdir(blank_fpath):
