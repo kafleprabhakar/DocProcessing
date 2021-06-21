@@ -2,6 +2,7 @@ const formElement = document.getElementById('upload-form');
 const responseContainer = document.getElementById('response-container');
 const fileInput = document.getElementById('document');
 const htmlForm = document.getElementById('parsed-form');
+const submitBtn = document.getElementById('form-submit');
 const imgContainer = document.getElementById('image-container');
 
 formElement.addEventListener('submit', (e) => handleFormSubmit(e));
@@ -52,9 +53,10 @@ function handleFormSubmit(e) {
   e.preventDefault();
   console.log(e);
   const toSend = new FormData(formElement);
-  toSend.append('document', fileInput.files[0])
-  console.log('to send', ...toSend);
-  console.log(fileInput.files);
+  toSend.append('document', fileInput.files[0]);
+  submitBtn.classList.add('disabled');
+  console.log('the class list: ' + submitBtn.classList);
+  submitBtn.disabled = true;
   fetch(formElement.action, {
     method:'POST',
     body: toSend,
@@ -63,5 +65,11 @@ function handleFormSubmit(e) {
       // responseContainer.innerHTML = JSON.stringify(data, null, 2);
       makeHTMLForm(data.clusters);
       addImage(data.image);
+      console.log(data.clusters[2])
+    })
+    .finally(() => {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('disabled');
     });
+  
 }
