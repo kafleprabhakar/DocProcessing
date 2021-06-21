@@ -52,23 +52,23 @@ def make_table_template(filename, table_type="uniform"):
         result = table_analysis.check_table(im_paths[0], outfile = img_path) #check for uniform table
 
         if len(result) > 0:
-            table_analysis.read_tables(im_paths[0], result[0], result[1], result[2], fpath=output_fpath, #+ 'table/',
+            result = table_analysis.read_tables(im_paths[0], result[0], result[1], result[2], fpath=output_fpath, #+ 'table/',
                                     csv_name=csv_fname, template_name=template_fname)
     else:
         result = table_analysis.get_horizontal_lines(im_paths[0], output_fpath + template_fname)
-        print("The final results: ", result)
+    print("The final results: ", result)
 
 # def extract_table_data(filename, template_fname):
 
 
 if __name__ == "__main__":
     # filename = blank_fpath + "Wisconsin_blank.pdf"
-    filename = filled_fpath + "alaska_FILLED.pdf"
+    # filename = filled_fpath + "alaska_FILLED.pdf"
     # files = list(filter(lambda filename: filename.endswith(".pdf"), os.listdir(blank_fpath)))
     # make_checkbox_template(random.choice(files))
-    make_checkbox_template(filename)
+    # make_checkbox_template(filename)
     # extract_data("Wisconsin.pdf", "Wisconsin_blank.json")
-    # make_table_template("exemption_filled.pdf", table_type="uniform")
+    make_table_template("exemption_filled.pdf", table_type="uniform")
     
     # for filename in os.listdir(blank_fpath):
     #     if filename.endswith(".pdf"):

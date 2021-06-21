@@ -7,7 +7,7 @@ import json
 from services import checkbox_detect, table_analysis, util, template_extract
 from base.customEncoder import CustomEncoder
 
-output_fpath = 'output/'
+output_fpath = '/static/outputs/'
 
 @app.route('/')
 def home():
@@ -25,20 +25,30 @@ def process():
 
     if action == 'checkbox':
         clusters, img = checkbox_detect.checkbox_detect(im_paths[0], plot=False, fileout=OUTPUT_FOLDER + name)
-        image_path = '/static/outputs/' + os.path.basename(img)
+        clusters = [{'type': 'checkboxes', 'data': cluster} for cluster in clusters]
+        image_path = output_fpath + os.path.basename(img)
         response = {
             'clusters': clusters,
             'image': image_path
         }
     elif action == 'uniform_table':
-        result = table_analysis.check_table(im_paths[0]) #check for uniform table
+        img_fname = name + "_uniform.jpg"
+        result = table_analysis.check_table(im_paths[0], outfile=OUTPUT_FOLDER + img_fname) #check for uniform table
         csv_fname = name + "_uniform.csv"
         template_fname = name + "_uniform.json"
         if len(result) > 0:
-            response = table_analysis.read_tables(im_paths[0], result[0], result[1], result[2], fpath=output_fpath, #+ 'table/',
+            data = table_analysis.read_tables(im_paths[0], result[0], result[1], result[2], fpath=OUTPUT_FOLDER, #+ 'table/',
                                                                                          csv_name=csv_fname, template_name=template_fname)
+            response = [{
+                'type': 'uniform_table',
+                'data': data
+            }]
         else:
             response = []
+        response = {
+            'clusters': response,
+            'image': output_fpath + img_fname
+        }
     elif action == 'non_uniform_table':
         response = table_analysis.get_horizontal_lines(im_paths[0])
     else:

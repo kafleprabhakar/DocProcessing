@@ -27,15 +27,17 @@ function makeCheckbox(label, status) {
   return checkbox;
 }
 
-function makeHTMLForm(data) {
+function makeHTMLForm(clusters) {
   htmlForm.innerHTML = '';
-  for (var cluster of data) {
-    // console.log(cluster);
-    // const clusterElement = document.createElement('div');
-    // const clusterElement = document.getElementById('cluster-template').content.cloneNode(true);
+  for (var cluster of clusters) {
     const clusterElement = makeClusterElement();
-    for (var element of cluster) {
-      clusterElement.appendChild(makeCheckbox(element.label, element.percent_filled > 0.15));
+    if (cluster.type === 'checkboxes') {
+      for (var element of cluster.data) {
+        clusterElement.appendChild(makeCheckbox(element.label, element.percent_filled > 0.15));
+      }
+    } else if (cluster.type === 'uniform_table') {
+      // clusterElement.append(json2Table(cluster.data));
+      clusterElement.innerHTML = json2Table(cluster.data);
     }
     htmlForm.appendChild(clusterElement);
   }
@@ -47,6 +49,37 @@ function addImage(imgPath) {
   image.setAttribute('src', imgPath);
   image.classList.add('processed-image');
   imgContainer.appendChild(image);
+}
+
+function json2Table(json) {
+  console.log('json');
+  console.log(json);
+  // https://dev.to/boxofcereal/how-to-generate-a-table-from-json-data-with-es6-methods-2eel
+  let cols = Object.keys(json[0]);
+  //Map over columns, make headers,join into string
+  let headerRow = cols
+    .map(col => `<th>${col}</th>`)
+    .join("");
+  
+  let rows = json
+    .map(row => {
+      let tds = cols.map(col => `<td>${row[col]}</td>`).join("");
+      return `<tr>${tds}</tr>`;
+    })
+    .join("");
+
+  //build the table
+  const table = `
+	<table class="table table-striped table-bordered">
+		<thead>
+			<tr>${headerRow}</tr>
+		<thead>
+		<tbody>
+			${rows}
+		<tbody>
+	<table>`;
+
+  return table;
 }
 
 function handleFormSubmit(e) {

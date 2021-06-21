@@ -489,7 +489,7 @@ def check_table(path, outfile=None):
     for c in contours:
         x, y, w, h = cv2.boundingRect(c)
         if 50 < w < 1000 and 25 < h < 500 and w / h > 1.5:
-            cv2.rectangle(im_color, (x, y), (x + w, y + h), (255, 0, 0), 2)
+            cv2.rectangle(im_color, (x, y), (x + w, y + h), (36,255,12), 2)
             box.append([x, y, w, h])
 
     dims = im_color.shape
@@ -537,7 +537,7 @@ def check_table(path, outfile=None):
 
             for i in range(len(box)):
                 for (x, y, w, h) in box:
-                    cv2.rectangle(im_color, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                    cv2.rectangle(im_color, (x, y), (x + w, y + h), (36,255,12), 2)
 
                 if (i == 0):
                     column.append(box[i])
@@ -658,8 +658,9 @@ def read_tables(path, finalboxes, row, countcol, fpath="", csv_name = "", templa
 
 
     # Creating a dataframe of the generated OCR list
-    arr = np.array(outer)
-    df = pd.DataFrame(arr.reshape(len(row), countcol))
+    arr = np.array(outer).reshape(len(row), countcol)
+    # print('arr', arr)
+    df = pd.DataFrame(arr)
 
     if len(fpath) > 0:
         df.to_csv(fpath + csv_name)
@@ -670,4 +671,4 @@ def read_tables(path, finalboxes, row, countcol, fpath="", csv_name = "", templa
 
         util.edit_json(jsonFile, final_data)
 
-    return df.to_dict()
+    return df.to_dict(orient='records')
