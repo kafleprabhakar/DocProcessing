@@ -34,7 +34,6 @@ def find_inner_checkbox(checkboxes: List[Checkbox], approx: Box, thold: int = 2)
     return True
 
 
-# Find the minimum dimensions of the
 def minimum_box_dimensions(checkboxes: List[Box]) -> Tuple[int]:
     """
     Returns a tuple of minimum height and width among the given boxes
@@ -65,7 +64,6 @@ def find_checkboxes(threshold: np.ndarray, ratio: float, delta: int,\
             # If the box is a square within a given size range and delta
             if abs(height - width) < delta and width in range(*side_length_range) and height in range(*side_length_range):
                 if not checkboxes or find_inner_checkbox(checkboxes, approx_box):
-                    
                     checkboxes.append(Checkbox(approx_box))
     checkboxes.reverse() # The contours returned by opencv if from bottom to up
     return checkboxes
@@ -117,7 +115,6 @@ def checkbox_detect(path: str, ratio: float = 0.015, delta: int = 12, side_lengt
         center = box.get_center().astype(int)
         percent = get_percent_filled(threshold, center, min_width, min_height)
 
-        # box_dict['percent_filled'] = percent
         checkbox.set_percent_filled(percent)
         cv2.putText(im, str(percent), (center[0] - 60, center[1] + 5), font, 1.2, (0, 0, 255), thickness=2)
 
@@ -141,7 +138,7 @@ def checkbox_detect(path: str, ratio: float = 0.015, delta: int = 12, side_lengt
 def add_checkbox_label(path: str, checkboxes: List[Checkbox], plot: bool = True, saveImg: Optional[str] = None) -> str:
     """
     Given the image path and the list of checkboxes detected in the image, augments each checkbox with
-    the label found in the image.
+    the corresponding label and the patch it belongs to in the image.
     -----
     Returns: image path of checkbox-label patches plotted on it if saveImg is set to a string, else empty string
     """
@@ -155,7 +152,7 @@ def add_checkbox_label(path: str, checkboxes: List[Checkbox], plot: bool = True,
         top_left, bottom_right = focus_segment.get_box_endpoints()
 
         if plot or saveImg:
-            cv2.rectangle(image, top_left, bottom_right, (36,255,12), 2)
+            cv2.rectangle(image, top_left, bottom_right, (36, 255, 12), 2)
         
         focus_img = image[top_left[1]: bottom_right[1], top_left[0]: bottom_right[0]]
         label = pytesseract.image_to_string(focus_img).strip().replace('\n', ' ')
@@ -207,7 +204,7 @@ def cluster_checkboxes(path: str, checkboxes: List[Checkbox], plot: bool = False
     clusters.reverse() # The contours returned by opencv if from bottom to up
     return clusters
 
-# Type of checkbox: List[Dict[str, Union[int, List[float], Box, float]]]
+
 def get_unique_checkboxes(checkboxes: List[Checkbox]) -> List[Checkbox]:
     """
     Returns a dict of checkboxes after replacing all the overlapping checkboxes by single unique one
@@ -226,7 +223,6 @@ def get_unique_checkboxes(checkboxes: List[Checkbox]) -> List[Checkbox]:
     return unique_checkboxes
 
 
-# reads from output of above file
 def checkbox_read(path, checkbox_clusters):
 
     imgray = cv2.imread(path, 0)

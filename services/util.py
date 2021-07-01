@@ -62,6 +62,15 @@ def get_document_segmentation(image, dilate_kernel_size: Tuple[int, int] = (10, 
     return boxes
 
 
+def remove_long_lines(im: np.ndarray, threshold: int = 100) -> np.ndarray:
+    """
+    Given an image and a threshold amount, removes all the horizontal and vertical lines of length greater
+    than the threshold from the image
+    -----
+    returns: a new image with all long horizontal and vertical lines removed
+    """
+    vertical_lines = get_vertical_lines(im, threshold=threshold)
+
 def draw_contours(im: np.ndarray, contours: List[Box]) -> None:
     """
     Given a list of boxes, draws them on the image
