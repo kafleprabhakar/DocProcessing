@@ -1,5 +1,6 @@
 import numpy as np
 import copy
+from typing import List, Tuple
 
 class Box:
     """ Represents the immutable bounding box of the polygon passed """
@@ -56,6 +57,12 @@ class Box:
         other_Y = other.get_Y_range()
 
         return self_X[0] <= other_X[0] and self_Y[0] <= other_Y[0] and self_X[1] >= other_X[1] and self_Y[1] >= other_Y[1]
+
+    def check_duplicate(self, other, threshold: Tuple[int, int] = (10, 10)) -> bool:
+        self_bounds = np.append(self.get_X_range(), self.get_Y_range())
+        other_bounds = np.append(other.get_X_range(), other.get_Y_range())
+
+        return all([abs(self_bounds[i] - other_bounds[i]) < threshold[i//2] for i in range(4)])
 
     def _to_json(self):
         return self.get_vertices().tolist()

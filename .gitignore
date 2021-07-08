@@ -5,3 +5,5 @@ output/*
 .DS_Store
 server/upload/*
 server/static/outputs/*
+test.ipynb
+.ipynb_checkpoints

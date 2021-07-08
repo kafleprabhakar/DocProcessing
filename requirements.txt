@@ -3,3 +3,5 @@ pytesseract
 pandas
 pdf2image
 flask
+matplotlib
+tabulate

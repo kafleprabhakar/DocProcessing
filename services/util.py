@@ -7,6 +7,7 @@ import numpy as np
 import cv2
 import math
 from base.customEncoder import CustomEncoder
+import random
 
 def edit_json(jsonFile, newData):
     try:
@@ -71,6 +72,12 @@ def remove_long_lines(im: np.ndarray, threshold: int = 100) -> np.ndarray:
     """
     vertical_lines = get_vertical_lines(im, threshold=threshold)
 
+def random_rgb():
+    """
+    Generates a random RGB color
+    """
+    return (random.randint(0, 256), random.randint(0, 256), random.randint(0, 256))
+
 def draw_contours(im: np.ndarray, contours: List[Box]) -> None:
     """
     Given a list of boxes, draws them on the image
@@ -87,9 +94,9 @@ def show_image(im: np.ndarray, name: str = "Image", delay: int = 2000) -> None:
     name: name of the window frame
     delay: number of milliseconds to display the image
     """
-    cv2.imshow('im', im)
+    cv2.imshow(name, im)
 
-    cv2.waitKey(2000)
+    cv2.waitKey(delay)
     cv2.destroyAllWindows()
 
 

@@ -5,23 +5,30 @@ import os
 import numpy as np
 import pandas as pd
 import math
+from typing import List, Tuple, Dict, Union, Optional
 from pytesseract import Output
 
 import util
+from base.classes import Box
 
 
 # remove any duplicate bounding boxes
-def check_duplicate_boxes(box):
-    final_box = []
-    for (x,y,w,h) in box:
-        duplicate = False
-        for (a,b,c,d) in final_box:
-            if abs(x-a) < 10 and abs(y-b) < 10 and abs(w-c) < 10 and abs(h-d) < 10:
-                duplicate = True
+def check_duplicate_boxes(boxes: List[Box]):
+    final_boxes = []
+    for box in boxes:
+        duplicate = any([box.check_duplicate(other_box) for other_box in final_boxes])
         if not duplicate:
-            final_box.append([x,y,w,h])
+            final_boxes.append(box)
+    # for box in b:
+    #     duplicate = any([])
+    #     duplicate = False
+    #     for (a,b,c,d) in final_box:
+    #         if abs(x-a) < 10 and abs(y-b) < 10 and abs(w-c) < 10 and abs(h-d) < 10:
+    #             duplicate = True
+    #     if not duplicate:
+    #         final_box.append([x,y,w,h])
 
-    return final_box
+    return final_boxes
 
 
 # remove overlapping lines
@@ -37,24 +44,33 @@ def remove_duplicate_lines(lines):
     return final_lines
 
 
-def sort_contours(cnts, method="left-to-right"):
+def sort_contours(boxes: List[Box], method: str = "left-to-right") -> List[Box]:
+    """
+    Sorts the given list of boxes according to the top left vertex of the bounding box
+    under given method
+    -----
+    returns: the sorted list of boxes
+    """
     # initialize the reverse flag and sort index
     reverse = False
-    i = 0
     # handle if we need to sort in reverse
     if method == "right-to-left" or method == "bottom-to-top":
         reverse = True
     # handle if we are sorting against the y-coordinate rather than
     # the x-coordinate of the bounding box
     if method == "top-to-bottom" or method == "bottom-to-top":
-        i = 1
-    # construct the list of bounding boxes and sort them from top to
-    # bottom
-    boundingBoxes = [cv2.boundingRect(c) for c in cnts]
-    (cnts, boundingBoxes) = zip(*sorted(zip(cnts, boundingBoxes),
-                                        key=lambda b: b[1][i], reverse=reverse))
+        get_x_or_y = lambda box: box.get_Y_range()[0]
+    else:
+        get_x_or_y = lambda box: box.get_X_range()[0]
+    
+    # construct the list of bounding boxes and sort them from top to bottom
+    boxes = sorted(boxes, key=lambda box: get_x_or_y(box), reverse=reverse)
+    # boundingBoxes = [cv2.boundingRect(c) for c in boxes]
+    # (boxes, boundingBoxes) = zip(*sorted(zip(boxes, boundingBoxes),
+    #                                     key=lambda b: b[1][i], reverse=reverse))
     # return the list of sorted contours and bounding boxes
-    return (cnts, boundingBoxes)
+    # return (boxes, boundingBoxes)
+    return boxes
 
 
 # read entire document
@@ -421,85 +437,82 @@ def get_horizontal_lines(path, jsonFile=None):
     return label, data
 
 def check_table(path, outfile=None):
-    PACKAGE_DIR = os.path.dirname(__file__)
-
+    """
+    Algorithm from here: https://towardsdatascience.com/a-table-detection-cell-recognition-and-text-extraction-algorithm-to-convert-tables-to-excel-files-902edcf289ec
+    """
     img = cv2.imread(path, 0)
-
     im_color = cv2.imread(path)
 
-    # thresholding the image to a binary image
+    # thresholding the image to a binary image and inverting
     thresh, img_bin = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-    # inverting the image
     img_bin = 255 - img_bin
 
-    # Length(width) of kernel as 100th of total width
-    #kernel_len = np.array(img).shape[1] // 100
-    kernel_len = np.array(img).shape[1] // 50
-    kernel_len_hor = np.array(img).shape[0] // 40
-    # Defining a vertical kernel to detect all vertical lines of image
-    ver_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, kernel_len))
-    # Defining a horizontal kernel to detect all horizontal lines of image
-    #hor_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_len, 1))
-    hor_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_len_hor, 1))
-    # A kernel of 2x2
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+    # Kernel lengths to extract horizontal and vertical lines
+    ver_kernel_len = np.array(img).shape[1] // 50
+    hor_kernel_len = np.array(img).shape[0] // 40
+
+    # Defining kernels to detect all vertical and horizontal lines of image
+    ver_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, ver_kernel_len))
+    hor_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (hor_kernel_len, 1))
+
+    # A kernel of 2x2 NOT USED!!
+    # kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
 
     # Changing to iterations 1 impacts detection of blank lines
-    image_1 = cv2.erode(img_bin, ver_kernel, iterations=1)
-    vertical_lines = cv2.dilate(image_1, ver_kernel, iterations=1)
+    vertical_lines = cv2.erode(img_bin, ver_kernel, iterations=1)
+    vertical_lines = cv2.dilate(vertical_lines, ver_kernel, iterations=1)
 
-
-    # Use horizontal kernel to detect and save the horizontal lines in a jpg
-    image_2 = cv2.erode(img_bin, hor_kernel, iterations=1)
-    horizontal_lines = cv2.dilate(image_2, hor_kernel, iterations=2)
-
+    horizontal_lines = cv2.erode(img_bin, hor_kernel, iterations=1)
+    horizontal_lines = cv2.dilate(horizontal_lines, hor_kernel, iterations=1)
 
     # Combine horizontal and vertical lines in a new third image, with both having same weight.
     img_vh = cv2.addWeighted(vertical_lines, 0.5, horizontal_lines, 0.5, 0.0)
+    # util.show_image(img_vh, delay=0)
+    # img_vh = cv2.erode(img_vh, kernel, iterations=5)
+
     # Eroding and thesholding the image
-
-    dims = img_vh.shape
-    img_vh_1 = cv2.resize(img_vh, (int(dims[1] / 3), int(dims[0] / 3)))
-
-    #cv2.imshow('img_vh 1', img_vh_1)
-    #cv2.waitKey(5000)
-    #cv2.destroyAllWindows()
-    #img_vh = cv2.erode(~img_vh, kernel, iterations=2)
-
     _, img_vh = cv2.threshold(img_vh, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
 
+    # util.show_image(img_vh, delay=0)
 
-    bitxor = cv2.bitwise_xor(img, img_vh)
+    # bitxor = cv2.bitwise_xor(img, img_vh)
     #bitnot = cv2.bitwise_not(bitxor)
 
     # Detect contours for following box detection
-    contours, hierarchy = cv2.findContours(img_vh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(img_vh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    boxes = [Box(contour) for contour in contours]
 
     # Sort all the contours by top to bottom.
-    contours, boundingBoxes = sort_contours(contours, method='top-to-bottom')
+    # contours, boundingBoxes = sort_contours(boxes, method='top-to-bottom')
+    boxes = sort_contours(boxes, method='top-to-bottom')
 
     # Creating a list of heights for all detected boxes
-    heights = [boundingBoxes[i][3] for i in range(len(boundingBoxes))]
+    heights = [box.get_height() for box in boxes]
     # Get mean of heights
-    mean = np.mean(heights)
+    mean_height = np.mean(heights)
 
     # Create list box to store all boxes in
     box = []
-    # Get position (x,y), width and height for every contour and show the contour on image
-    for c in contours:
-        x, y, w, h = cv2.boundingRect(c)
-        if 50 < w < 1000 and 25 < h < 500 and w / h > 1.5:
-            cv2.rectangle(im_color, (x, y), (x + w, y + h), (36,255,12), 2)
-            box.append([x, y, w, h])
+    boxes = [box for box in boxes if 50 < box.get_width() < 1000 and 25 < box.get_height() < 500]
 
-    dims = im_color.shape
-    img_color_1 = cv2.resize(im_color, (int(dims[1] / 3), int(dims[0] / 3)))
+    util.draw_contours(im_color, boxes)
+    util.show_image(im_color, delay=0)
+    # Get position (x,y), width and height for every contour and show the contour on image
+    # for c in contours:
+    #     x, y, w, h = cv2.boundingRect(c)
+    #     if 50 < w < 1000 and 25 < h < 500:
+    #         cv2.rectangle(im_color, (x, y), (x + w, y + h), (36,255,12), 2)
+    #         box.append([x, y, w, h])
+
+    # dims = im_color.shape
+    # img_color_1 = cv2.resize(im_color, (int(dims[1] / 3), int(dims[0] / 3)))
 
     #cv2.imwrite(fpath + 'multi_image.jpg', im_color)
-
-    cv2.imshow('im color', img_color_1)
-    cv2.waitKey(2000)
-    cv2.destroyAllWindows()
+    # util.show_image(img_color_1, "Color Image", 0)
+    # cv2.imshow('im color', img_color_1)
+    # cv2.waitKey(2000)
+    # cv2.destroyAllWindows()
     
     if outfile:
         cv2.imwrite(outfile, im_color)
@@ -509,13 +522,14 @@ def check_table(path, outfile=None):
     row = []
     column = []
 
-    if len(box) == 0:
+    if len(boxes) == 0:
         print('NO UNIFORM TABLE FOUND')
         return []
     else:
         # Sorting the boxes to their respective row and column
-
-        box = return_table(check_duplicate_boxes(box))
+        unique_boxes = check_duplicate_boxes(boxes)
+        boxes = [(box.get_X_range()[0], box.get_Y_range()[0], box.get_width(), box.get_height()) for box in unique_boxes]
+        box = return_table(boxes)
 
         # for (x, y, w, h) in box:
         #    image = cv2.rectangle(im_color, (x, y), (x + w, y + h), (0, 255, 0), 2)
@@ -543,7 +557,7 @@ def check_table(path, outfile=None):
                     column.append(box[i])
                     previous = box[i]
                 else:
-                    if box[i][1] <= previous[1] + mean / 2:
+                    if box[i][1] <= previous[1] + mean_height / 2:
                         column.append(box[i])
                         previous = box[i]
                         if i == len(box) - 1:
@@ -557,13 +571,15 @@ def check_table(path, outfile=None):
             # print(row)
 
             # calculating maximum number of cells
-            countcol = 0
-            for i in range(len(row)):
-                countcol = len(row[i])
-                if countcol > countcol:
-                    countcol = countcol
+            countcol = max([len(r) for r in row])
+            # countcol = 0
+            # for i in range(len(row)):
+            #     countcol = len(row[i])
+            #     if countcol > countcol:
+            #         countcol = countcol
 
             # Retrieving the center of each column
+            i = len(row) - 1
             center = [int(row[i][j][0] + row[i][j][2] / 2) for j in range(len(row[i])) if row[0]] # ??????????? what's i?
             center = np.array(center)
             center.sort()
