@@ -71,40 +71,86 @@ def full_pdf_detection(path):
     return d
 
 
+def is_vertically_adjacent(this: Box, that: Box) -> bool:
+    """
+    Given two boxes, returns true if this and that are vertically adjacent (i.e. vertically stacked)
+    """
+    this_top_left = this.get_box_endpoints()[0]
+    that_top_left = that.get_box_endpoints()[0]
+    if abs(this_top_left[0] - that_top_left[0]) < 10:
+        if this_top_left[1] <= that_top_left[1]:
+            height = this.get_height()
+        else:
+            height = that.get_height()
+
+        if abs(this_top_left[1] - that_top_left[1]) < height + 5:
+            return True
+    
+    return False
+
+
+def is_horizontally_adjacent(this: Box, that: Box) -> bool:
+    """
+    Given two boxes, returns true if this and that are horizontally adjacent (i.e. horizontally stacked)
+    """
+    this_top_left = this.get_box_endpoints()[0]
+    that_top_left = that.get_box_endpoints()[0]
+    if abs(this_top_left[1] - that_top_left[1]) < 10:
+        if this_top_left[0] <= that_top_left[0]:
+            width = this.get_width()
+        else:
+            width = that.get_width()
+
+        if abs(this_top_left[0] - that_top_left[0]) < width + 5:
+            return True
+    
+    return False
+
 # No single line of boxes allowed
 # Each box must have one directly above/below and directly left/right
 # Returns all boxes in the table
-def return_table(box):
-    tables = []
-    # take each box and compare it to all others
-    for i, (x, y, w, h) in enumerate(box): # Box X
-        found_vertical = False
-        found_horizontal = False
-
-        for (a, b, c, d) in box[:i] + box[i + 1:]: # Box A
-            # If Box A is adjacent to box X vertically
-            if abs(x-a) < 10 and not found_vertical:
-                if min(y, b) == y:
-                    height = h
-                else:
-                    height = d
-
-                if abs(y - b) < height + 5:
-                    found_vertical = True
-            # If Box A is adjacent to box X horizontally
-            elif abs(y-b) < 10 and not found_horizontal:
-                if min(x, a) == x:
-                    width = w
-                else:
-                    width = c
-
-                if abs(x - a) < width + 5:
-                    found_horizontal = True
-
+def return_table(boxes: List[Box]) -> List[Box]:
+    boxes_with_siblings = []
+    for i, box in enumerate(boxes):
+        remaining_boxes = boxes[:i] + boxes[i + 1:]
+        found_horizontal = any([is_horizontally_adjacent(box, other_box) for other_box in remaining_boxes])
+        found_vertical = any([is_vertically_adjacent(box, other_box) for other_box in remaining_boxes])
+        
         if found_horizontal and found_vertical:
-            tables.append([x, y, w, h])
+            boxes_with_siblings.append(box)
+    
+    return boxes_with_siblings
 
-    return tables
+    # tables = []
+    # # take each box and compare it to all others
+    # for i, (x, y, w, h) in enumerate(box): # Box X
+    #     found_vertical = False
+    #     found_horizontal = False
+
+    #     for (a, b, c, d) in box[:i] + box[i + 1:]: # Box A
+    #         # If Box A is adjacent to box X vertically
+    #         if abs(x-a) < 10 and not found_vertical:
+    #             if min(y, b) == y:
+    #                 height = h
+    #             else:
+    #                 height = d
+
+    #             if abs(y - b) < height + 5:
+    #                 found_vertical = True
+    #         # If Box A is adjacent to box X horizontally
+    #         elif abs(y-b) < 10 and not found_horizontal:
+    #             if min(x, a) == x:
+    #                 width = w
+    #             else:
+    #                 width = c
+
+    #             if abs(x - a) < width + 5:
+    #                 found_horizontal = True
+
+    #     if found_horizontal and found_vertical:
+    #         tables.append([x, y, w, h])
+
+    # return tables
 
 
 # only look at lines that are over 50% width of page
@@ -491,8 +537,9 @@ def check_table(path, outfile=None):
     else:
         # Sorting the boxes to their respective row and column
         unique_boxes = remove_duplicate_boxes(boxes)
-        boxes = [(box.get_X_range()[0], box.get_Y_range()[0], box.get_width(), box.get_height()) for box in unique_boxes]
-        box = return_table(boxes)
+        table_boxes = return_table(unique_boxes)
+        boxes = [(box.get_X_range()[0], box.get_Y_range()[0], box.get_width(), box.get_height()) for box in table_boxes]
+        box = boxes
 
         if len(box) == 0:
             print('NO TABLE FOUND')
