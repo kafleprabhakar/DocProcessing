@@ -59,7 +59,7 @@ def get_document_segmentation(image, dilate_kernel_size: Tuple[int, int] = (10, 
         vertices = tuple(vertices[i] - padding[i] for i in range(4))
         boxes.append(Box(vertices))
         
-    
+    cv2.imshow('dilate', dilate)
     return boxes
 
 
@@ -78,13 +78,14 @@ def random_rgb():
     """
     return (random.randint(0, 256), random.randint(0, 256), random.randint(0, 256))
 
-def draw_contours(im: np.ndarray, contours: List[Box]) -> None:
+def draw_contours(im: np.ndarray, contours: List[Box], random_color: bool = False) -> None:
     """
     Given a list of boxes, draws them on the image
     """
     contours = [np.reshape(box.get_vertices(), (-1, 1, 2)) for box in contours]
     for contour in contours:
-        cv2.drawContours(im, [contour], 0, (0, 255, 0))
+        color = (255, 0, 0) if not random_color else random_rgb()
+        cv2.drawContours(im, [contour], 0, color, -1)
 
 
 def show_image(im: np.ndarray, name: str = "Image", delay: int = 2000) -> None:

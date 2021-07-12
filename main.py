@@ -72,7 +72,7 @@ if __name__ == "__main__":
     # make_checkbox_template(filename)
     # extract_data("Wisconsin.pdf", "Wisconsin_blank.json")
 
-    filepath = filled_fpath + "multi-jurisdiction_filled2.pdf"
+    filepath = filled_fpath + "bnm_sb.pdf"
     make_table_template(filepath, table_type="uniform")
     
     # for filename in os.listdir(blank_fpath):

@@ -518,10 +518,10 @@ def check_table(path, outfile=None):
 
     # Create list box to store all boxes in
     box = []
-    boxes = [box for box in boxes if 50 < box.get_width() < 1000 and 25 < box.get_height() < 500]
+    boxes = [box for box in boxes if 50 < box.get_width() < 1000 and 25 < box.get_height() < 800]
 
-    util.draw_contours(im_color, boxes)
-    util.show_image(im_color, delay=0)
+    # util.draw_contours(im_color, boxes, random_color=True)
+    # util.show_image(im_color, delay=0)
     
     if outfile:
         cv2.imwrite(outfile, im_color)
@@ -535,41 +535,58 @@ def check_table(path, outfile=None):
         print('NO UNIFORM TABLE FOUND')
         return []
     else:
+        print('boxes found: ', len(boxes))
         # Sorting the boxes to their respective row and column
-        unique_boxes = remove_duplicate_boxes(boxes)
-        table_boxes = return_table(unique_boxes)
-        boxes = [(box.get_X_range()[0], box.get_Y_range()[0], box.get_width(), box.get_height()) for box in table_boxes]
-        box = boxes
+        boxes = remove_duplicate_boxes(boxes)
+        table_boxes = return_table(boxes)
+        # boxes = [(box.get_X_range()[0], box.get_Y_range()[0], box.get_width(), box.get_height()) for box in table_boxes]
+        # box = boxes
+        # util.draw_contours(im_color, table_boxes)
+        # util.show_image(im_color, delay=0)
 
-        if len(box) == 0:
+        if len(table_boxes) == 0:
             print('NO TABLE FOUND')
             return []
 
         else:
+            table = []
+            current_row = [table_boxes[0]]
+            previous_Y = current_row[-1].get_Y_range()[0]
+            for i, box in enumerate(table_boxes[1:]):
+                this_Y = box.get_Y_range()[0]
+                same_row_as_previous = this_Y <= previous_Y + mean_height / 2
 
-            for i in range(len(box)):
-                for (x, y, w, h) in box:
-                    cv2.rectangle(im_color, (x, y), (x + w, y + h), (36,255,12), 2)
+                if not same_row_as_previous: # Start a new row
+                    table.append(current_row)
+                    current_row = []
 
-                if (i == 0):
-                    column.append(box[i])
-                    previous = box[i]
-                else:
-                    if box[i][1] <= previous[1] + mean_height / 2:
-                        column.append(box[i])
-                        previous = box[i]
-                        if i == len(box) - 1:
-                            row.append(column)
-                    else:
-                        row.append(column)
-                        column = []
-                        previous = box[i]
-                        column.append(box[i])
+                current_row.append(box)
+
+                if i == len(table_boxes) - 1:
+                    table.append(current_row)
+                
+                previous_Y = this_Y
+
+            # for i in range(len(box)):
+            #     if (i == 0):
+            #         column.append(box[i])
+            #     else:
+            #         if box[i][1] <= previous[1] + mean_height / 2:
+            #             column.append(box[i])
+            #             previous = box[i]
+            #             if i == len(box) - 1:
+            #                 row.append(column)
+            #         else:
+            #             row.append(column)
+            #             column = []
+            #             previous = box[i]
+            #             column.append(box[i])
+            #     previous = box[i]
             # print(column)
             # print(row)
 
             # calculating maximum number of cells
-            countcol = max([len(r) for r in row])
+            countcol = max([len(r) for r in table])
             # countcol = 0
             # for i in range(len(row)):
             #     countcol = len(row[i])
@@ -578,23 +595,39 @@ def check_table(path, outfile=None):
 
             # Retrieving the center of each column
             i = len(row) - 1
-            center = [int(row[i][j][0] + row[i][j][2] / 2) for j in range(len(row[i])) if row[0]] # ??????????? what's i?
-            center = np.array(center)
+            center = np.array([int(np.mean(cell.get_X_range())) for cell in table[i]])
+            # center = [int(row[i][j][0] + row[i][j][2] / 2) for j in range(len(row[i])) if row[0]] # ??????????? what's i?
+            # center = np.array(center)
             center.sort()
 
             # Regarding the distance to the columns center, the boxes are arranged in respective order
             finalboxes = []
 
-            for i in range(len(row)):
-                lis = []
-                for k in range(countcol):
-                    lis.append([])
-                for j in range(len(row[i])):
-                    diff = abs(center - (row[i][j][0] + row[i][j][2] / 4)) # ????????? What is going on here?
-                    minimum = min(diff)
-                    indexing = list(diff).index(minimum)
-                    lis[indexing].append(row[i][j])
-                finalboxes.append(lis)
+            for row in table:
+                sorted_row = []
+                for _ in range(countcol):
+                    sorted_row.append([])
+                for cell in row:
+                    diff = abs(center - (cell.get_X_range()[0] + cell.get_width() / 4))
+                    min_idx = np.argmin(diff)
+                    # sorted_row[min_idx].append(cell)
+                    sorted_row[min_idx].append([cell.get_X_range()[0], cell.get_Y_range()[0], cell.get_width(), cell.get_height()])
+
+                finalboxes.append(sorted_row)
+
+            # for i in range(len(row)):
+            #     lis = []
+            #     for k in range(countcol):
+            #         lis.append([])
+            #     for j in range(len(row[i])):
+            #         diff = abs(center - (row[i][j][0] + row[i][j][2] / 4)) # ????????? What is going on here?
+            #         minimum = min(diff)
+            #         indexing = list(diff).index(minimum)
+            #         lis[indexing].append(row[i][j])
+            #     finalboxes.append(lis)
+            # For compatibility for the time being
+            table = [[(box.get_X_range()[0], box.get_Y_range()[0], box.get_width(), box.get_height())] for row in table for box in row]
+            # finalboxes = [[(box.get_X_range()[0], box.get_Y_range()[0], box.get_width(), box.get_height())] for row in finalboxes for cell in row for box in cell]
 
             print('UNIFORM TABLE FOUND')
             return [finalboxes, row, countcol]
@@ -614,7 +647,6 @@ def read_tables(path, finalboxes, row, countcol, fpath="", csv_name = "", templa
     outer = []
 
     empty_boxes = {}
-
     for i in range(len(finalboxes)):
         for j in range(len(finalboxes[i])):
             inner = ''
@@ -672,7 +704,7 @@ def read_tables(path, finalboxes, row, countcol, fpath="", csv_name = "", templa
 
 
     # Creating a dataframe of the generated OCR list
-    arr = np.array(outer).reshape(len(row), countcol)
+    arr = np.array(outer).reshape(len(finalboxes), countcol)
     # print('arr', arr)
     df = pd.DataFrame(arr)
 
