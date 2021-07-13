@@ -36,11 +36,11 @@ def show_wait_destroy(winname, img):
 
 if __name__ == "__main__":
     # file_in = 'multi-jurisdiction.pdf'
-    file_in = 'bnm_sb.pdf'
+    file_in = 'Exemption_filled.pdf'
 
     pdf_path = filled_fpath + file_in
     im_paths = util.pdf_to_image(pdf_path)
-    path = im_paths[2]
+    path = im_paths[0]
 
     # for i, path in enumerate(im_paths):
     #     # Load image, grayscale, Gaussian blur, Otsu's threshold
@@ -55,8 +55,8 @@ if __name__ == "__main__":
     #     util.show_image(image, delay=0)
     #     cv2.imwrite(f"img/bnm_c_{i}.jpg", image)
 
-    result = table_analysis.check_table(path)
-    print('the first result: ', result)
+    result = table_analysis.check_table(path, debug=True)
+    print('the result: ', result)
 
     if len(result) > 0:
         result = table_analysis.read_tables(path, result[0], result[1], result[2])

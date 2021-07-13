@@ -85,7 +85,7 @@ def draw_contours(im: np.ndarray, contours: List[Box], random_color: bool = Fals
     contours = [np.reshape(box.get_vertices(), (-1, 1, 2)) for box in contours]
     for contour in contours:
         color = (255, 0, 0) if not random_color else random_rgb()
-        cv2.drawContours(im, [contour], 0, color, -1)
+        cv2.drawContours(im, [contour], 0, color, 2)
 
 
 def show_image(im: np.ndarray, name: str = "Image", delay: int = 2000) -> None:

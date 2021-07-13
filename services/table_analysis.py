@@ -469,7 +469,7 @@ def get_horizontal_lines(path, jsonFile=None):
 
     return label, data
 
-def check_table(path, outfile=None):
+def check_table(path, outfile=None, debug=False):
     """
     Algorithm from here: https://towardsdatascience.com/a-table-detection-cell-recognition-and-text-extraction-algorithm-to-convert-tables-to-excel-files-902edcf289ec
     """
@@ -500,6 +500,12 @@ def check_table(path, outfile=None):
     # Eroding and thesholding the image --- Not eroding though ---
     _, img_vh = cv2.threshold(img_vh, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
 
+    # im_vh_color = cv2.cvtColor(img_vh, cv2.COLOR_GRAY2BGR)
+    # patches = util.get_document_segmentation(im_vh_color, dilate_kernel_size=(10,2))
+    # util.draw_contours(im_vh_color, patches)
+    # if debug:
+    #     util.show_image(im_color, delay=0)
+
     # bitxor = cv2.bitwise_xor(img, img_vh)
     #bitnot = cv2.bitwise_not(bitxor)
 
@@ -523,9 +529,6 @@ def check_table(path, outfile=None):
     # util.draw_contours(im_color, boxes, random_color=True)
     # util.show_image(im_color, delay=0)
     
-    if outfile:
-        cv2.imwrite(outfile, im_color)
-        print('Saving color image')
 
     # Creating two lists to define row and column in which cell is located
     row = []
@@ -541,8 +544,18 @@ def check_table(path, outfile=None):
         table_boxes = return_table(boxes)
         # boxes = [(box.get_X_range()[0], box.get_Y_range()[0], box.get_width(), box.get_height()) for box in table_boxes]
         # box = boxes
-        # util.draw_contours(im_color, table_boxes)
-        # util.show_image(im_color, delay=0)
+        util.draw_contours(im_color, table_boxes, random_color=True)
+
+        # patches = util.get_document_segmentation(im_color, dilate_kernel_size=(10,2))
+        # util.draw_contours(im_color, patches)
+
+        if debug:
+            util.show_image(im_color, delay=0)
+
+
+        if outfile:
+            cv2.imwrite(outfile, im_color)
+            print('Saving color image')
 
         if len(table_boxes) == 0:
             print('NO TABLE FOUND')
@@ -594,7 +607,7 @@ def check_table(path, outfile=None):
             #         countcol = countcol
 
             # Retrieving the center of each column
-            i = len(row) - 1
+            i = 0
             center = np.array([int(np.mean(cell.get_X_range())) for cell in table[i]])
             # center = [int(row[i][j][0] + row[i][j][2] / 2) for j in range(len(row[i])) if row[0]] # ??????????? what's i?
             # center = np.array(center)

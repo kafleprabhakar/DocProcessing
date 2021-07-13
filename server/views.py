@@ -16,15 +16,18 @@ def home():
 @app.route('/process', methods=['POST'])
 def process():
     action = request.form['actionType']
+    page = int(request.form['page'])
+    print('page number: ', page)
     document = request.files['document']
     filename = UPLOAD_FOLDER + document.filename
     name = os.path.basename(filename).split('.')[0]
     document.save(filename)
     print("The filename: ", filename)
     im_paths = util.pdf_to_image(filename)
+    image_path = im_paths[page-1]
 
     if action == 'checkbox':
-        clusters, img = checkbox_detect.checkbox_detect(im_paths[0], plot=False, fileout=OUTPUT_FOLDER + name)
+        clusters, img = checkbox_detect.checkbox_detect(image_path, plot=False, fileout=OUTPUT_FOLDER + name)
         clusters = [{'type': 'checkboxes', 'data': cluster} for cluster in clusters]
         image_path = output_fpath + os.path.basename(img)
         response = {
@@ -33,11 +36,11 @@ def process():
         }
     elif action == 'uniform_table':
         img_fname = name + "_uniform.jpg"
-        result = table_analysis.check_table(im_paths[0], outfile=OUTPUT_FOLDER + img_fname) #check for uniform table
+        result = table_analysis.check_table(image_path, outfile=OUTPUT_FOLDER + img_fname) #check for uniform table
         csv_fname = name + "_uniform.csv"
         template_fname = name + "_uniform.json"
         if len(result) > 0:
-            data = table_analysis.read_tables(im_paths[0], result[0], result[1], result[2], fpath=OUTPUT_FOLDER, #+ 'table/',
+            data = table_analysis.read_tables(image_path, result[0], result[1], result[2], fpath=OUTPUT_FOLDER, #+ 'table/',
                                                                                          csv_name=csv_fname, template_name=template_fname)
             response = [{
                 'type': 'uniform_table',
@@ -50,7 +53,7 @@ def process():
             'image': output_fpath + img_fname
         }
     elif action == 'non_uniform_table':
-        response = table_analysis.get_horizontal_lines(im_paths[0])
+        response = table_analysis.get_horizontal_lines(image_path)
     else:
         template = request.files['template']
         template_filename = UPLOAD_FOLDER + template.filename
@@ -58,6 +61,6 @@ def process():
         
         name = os.path.basename(filename).split('.')[0]
         output_file = output_fpath + name + '.json'
-        response = template_extract.extract_template(im_paths[0], filename, template_filename, output_fpath, output_file)
+        response = template_extract.extract_template(image_path, filename, template_filename, output_fpath, output_file)
 
     return json.dumps(response, cls=CustomEncoder)
