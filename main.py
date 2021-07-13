@@ -52,7 +52,7 @@ def make_table_template(filepath, table_type="uniform"):
         result = table_analysis.check_table(im_paths[0], outfile = img_path) #check for uniform table
 
         if len(result) > 0:
-            result = table_analysis.read_tables(im_paths[0], result[0], result[1], result[2], fpath=output_fpath, #+ 'table/',
+            result = table_analysis.read_tables(im_paths[0], result[0], result[1], fpath=output_fpath, #+ 'table/',
                                     csv_name=csv_fname, template_name=template_fname)
             print('the result', result)
             result = tabulate(result, tablefmt='grid')

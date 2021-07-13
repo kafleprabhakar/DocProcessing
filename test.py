@@ -59,7 +59,7 @@ if __name__ == "__main__":
     print('the result: ', result)
 
     if len(result) > 0:
-        result = table_analysis.read_tables(path, result[0], result[1], result[2])
+        result = table_analysis.read_tables(path, result[0], result[1])
         print('the result', result)
         result = tabulate(result, tablefmt='grid')
         print(result)

@@ -8,6 +8,7 @@ import cv2
 import math
 from base.customEncoder import CustomEncoder
 import random
+import pytesseract
 
 def edit_json(jsonFile, newData):
     try:
@@ -166,3 +167,21 @@ def save_data_to_json(data, filename, key):
 
     with open(filename, "w") as file:
         json.dump(prev_data, file, cls= CustomEncoder)
+
+
+def read_text_in_patch(image: np.ndarray, patch: Box) -> str:
+    """
+    Given an image and a box representing a patch on the image, reads and returns the text in the patch
+    """
+    EXCLUDE_SYMBOLS = ['!', '®', '™', '?', "|", "~"]
+    patch_X = patch.get_X_range()
+    patch_Y = patch.get_Y_range()
+    patch_img = image[patch_Y[0]:patch_Y[1], patch_X[0]:patch_X[1]]
+
+    raw_text = pytesseract.image_to_string(patch_img)
+    final_text = ''
+    for char in list(raw_text):
+        if char not in EXCLUDE_SYMBOLS:
+            final_text += char
+
+    return final_text.replace('\n', ' ')

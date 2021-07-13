@@ -580,37 +580,12 @@ def check_table(path, outfile=None, debug=False):
                 
                 previous_Y = this_Y
 
-            # for i in range(len(box)):
-            #     if (i == 0):
-            #         column.append(box[i])
-            #     else:
-            #         if box[i][1] <= previous[1] + mean_height / 2:
-            #             column.append(box[i])
-            #             previous = box[i]
-            #             if i == len(box) - 1:
-            #                 row.append(column)
-            #         else:
-            #             row.append(column)
-            #             column = []
-            #             previous = box[i]
-            #             column.append(box[i])
-            #     previous = box[i]
-            # print(column)
-            # print(row)
-
-            # calculating maximum number of cells
+            # calculating maximum number of cells in a row
             countcol = max([len(r) for r in table])
-            # countcol = 0
-            # for i in range(len(row)):
-            #     countcol = len(row[i])
-            #     if countcol > countcol:
-            #         countcol = countcol
 
             # Retrieving the center of each column
             i = 0
             center = np.array([int(np.mean(cell.get_X_range())) for cell in table[i]])
-            # center = [int(row[i][j][0] + row[i][j][2] / 2) for j in range(len(row[i])) if row[0]] # ??????????? what's i?
-            # center = np.array(center)
             center.sort()
 
             # Regarding the distance to the columns center, the boxes are arranged in respective order
@@ -623,31 +598,18 @@ def check_table(path, outfile=None, debug=False):
                 for cell in row:
                     diff = abs(center - (cell.get_X_range()[0] + cell.get_width() / 4))
                     min_idx = np.argmin(diff)
-                    # sorted_row[min_idx].append(cell)
-                    sorted_row[min_idx].append([cell.get_X_range()[0], cell.get_Y_range()[0], cell.get_width(), cell.get_height()])
+                    sorted_row[min_idx].append(cell)
+                    # sorted_row[min_idx].append([cell.get_X_range()[0], cell.get_Y_range()[0], cell.get_width(), cell.get_height()])
 
                 finalboxes.append(sorted_row)
 
-            # for i in range(len(row)):
-            #     lis = []
-            #     for k in range(countcol):
-            #         lis.append([])
-            #     for j in range(len(row[i])):
-            #         diff = abs(center - (row[i][j][0] + row[i][j][2] / 4)) # ????????? What is going on here?
-            #         minimum = min(diff)
-            #         indexing = list(diff).index(minimum)
-            #         lis[indexing].append(row[i][j])
-            #     finalboxes.append(lis)
-            # For compatibility for the time being
-            table = [[(box.get_X_range()[0], box.get_Y_range()[0], box.get_width(), box.get_height())] for row in table for box in row]
-            # finalboxes = [[(box.get_X_range()[0], box.get_Y_range()[0], box.get_width(), box.get_height())] for row in finalboxes for cell in row for box in cell]
 
             print('UNIFORM TABLE FOUND')
-            return [finalboxes, row, countcol]
+            return [finalboxes, countcol]
             # Ideally I guess you would want to store final boxes in json file
 
 
-def read_tables(path, finalboxes, row, countcol, fpath="", csv_name = "", template_name=""):
+def read_tables(path, finalboxes, countcol, fpath="", csv_name = "", template_name=""):
 
     EXCLUDE_SYMBOLS = ['!', '®', '™', '?', "|", "~"]
 
@@ -655,71 +617,83 @@ def read_tables(path, finalboxes, row, countcol, fpath="", csv_name = "", templa
 
     unmodified_img = cv2.imread(path, 0)
 
+    # For compatibility for the time being
+    # finalboxes = [[[(box.get_X_range()[0], box.get_Y_range()[0], box.get_width(), box.get_height()) for box in cell] for cell in row] for row in finalboxes]
+
     # from every single image-based cell/box the strings are extracted via pytesseract and stored in a list
     pd.set_option('display.max_columns', None)
     outer = []
 
     empty_boxes = {}
-    for i in range(len(finalboxes)):
-        for j in range(len(finalboxes[i])):
-            inner = ''
-            if len(finalboxes[i][j]) == 0:
-                outer.append(' ')
-            else:
-                for k in range(len(finalboxes[i][j])):
-                    x, y, w, h = finalboxes[i][j][k][0], finalboxes[i][j][k][1], finalboxes[i][j][k][2], \
-                                 finalboxes[i][j][k][3]
+    table_contents = []
+    for row in finalboxes:
+        row_content = []
+        for cell in row:
+            cell_content = ''
+            for box in cell:
+                cell_content += util.read_text_in_patch(unmodified_img, box)
+            row_content.append(cell_content.strip())
+        table_contents.append(row_content)
+    # for i in range(len(finalboxes)):
+    #     for j in range(len(finalboxes[i])):
+    #         inner = ''
+    #         if len(finalboxes[i][j]) == 0:
+    #             outer.append(' ')
+    #         else:
+    #             for k in range(len(finalboxes[i][j])):
+    #                 x, y, w, h = finalboxes[i][j][k][0], finalboxes[i][j][k][1], finalboxes[i][j][k][2], \
+    #                              finalboxes[i][j][k][3]
 
-                    full_text_word = ''
+    #                 full_text_word = ''
 
-                    n_boxes = len(full_text['level'])
-                    for n in range(n_boxes):
-                        (a, b, c, d) = (
-                        full_text['left'][n], full_text['top'][n], full_text['width'][n], full_text['height'][n])
-                        if x - 7 < a < (x + w) and y - 7 < b < (y + h) - 10 and (a + c) < (x + w):
-                            full_text_word = full_text['text'][n]
-                            break
-                            #print('Full text: {t}'.format(t=full_text['text'][n]))
+    #                 n_boxes = len(full_text['level'])
+    #                 for n in range(n_boxes):
+    #                     (a, b, c, d) = (
+    #                     full_text['left'][n], full_text['top'][n], full_text['width'][n], full_text['height'][n])
+    #                     if x - 7 < a < (x + w) and y - 7 < b < (y + h) - 10 and (a + c) < (x + w):
+    #                         full_text_word = full_text['text'][n]
+    #                         break
+    #                         #print('Full text: {t}'.format(t=full_text['text'][n]))
 
-                    finalimg = unmodified_img[y:y + h, x:x + w]
+    #                 finalimg = unmodified_img[y:y + h, x:x + w]
 
-                    unmod_text = pytesseract.image_to_string(finalimg)
+    #                 unmod_text = pytesseract.image_to_string(finalimg)
 
-                    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 1))
-                    border = cv2.copyMakeBorder(finalimg, 2, 2, 2, 2, cv2.BORDER_CONSTANT, value=[255, 255])
-                    resizing = cv2.resize(border, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    #                 kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 1))
+    #                 border = cv2.copyMakeBorder(finalimg, 2, 2, 2, 2, cv2.BORDER_CONSTANT, value=[255, 255])
+    #                 resizing = cv2.resize(border, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
 
-                    dilation = cv2.dilate(resizing, kernel, iterations=1)
+    #                 dilation = cv2.dilate(resizing, kernel, iterations=1)
 
-                    erosion = cv2.erode(dilation, kernel, iterations=1)
+    #                 erosion = cv2.erode(dilation, kernel, iterations=1)
 
-                    out = pytesseract.image_to_string(erosion)
-                    #print('Ersosion: ' + str(out))
-                    if len(out) == 0:
-                        if len(unmod_text) > 0:
-                            out = unmod_text
-                        elif len(full_text_word) > 0:
-                            out = full_text_word
-                        else:
-                            out = pytesseract.image_to_string(erosion, config='--psm 3')
-                    new_out = ''
-                    for c in list(out):
-                        if c not in EXCLUDE_SYMBOLS:
-                            new_out += c
+    #                 out = pytesseract.image_to_string(erosion)
+    #                 #print('Ersosion: ' + str(out))
+    #                 if len(out) == 0:
+    #                     if len(unmod_text) > 0:
+    #                         out = unmod_text
+    #                     elif len(full_text_word) > 0:
+    #                         out = full_text_word
+    #                     else:
+    #                         out = pytesseract.image_to_string(erosion, config='--psm 3')
+    #                 new_out = ''
+    #                 for c in list(out):
+    #                     if c not in EXCLUDE_SYMBOLS:
+    #                         new_out += c
 
-                    inner += new_out
-                    if inner == "" or inner == " ":
-                        if j not in empty_boxes:
-                            empty_boxes[j] = {}
-                        empty_boxes[j][i] = finalboxes[i][j][0]
+    #                 inner += new_out
+    #                 if inner == "" or inner == " ":
+    #                     if j not in empty_boxes:
+    #                         empty_boxes[j] = {}
+    #                     empty_boxes[j][i] = finalboxes[i][j][0]
 
-                outer.append(inner.strip().replace('\n', ' '))
+    #             outer.append(inner.strip().replace('\n', ' '))
 
 
     # Creating a dataframe of the generated OCR list
-    arr = np.array(outer).reshape(len(finalboxes), countcol)
+    # arr = np.array(outer).reshape(len(finalboxes), countcol)
     # print('arr', arr)
-    df = pd.DataFrame(arr)
+    df = pd.DataFrame(table_contents)
 
     if len(fpath) > 0:
         df.to_csv(fpath + csv_name)

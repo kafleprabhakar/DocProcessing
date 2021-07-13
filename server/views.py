@@ -40,7 +40,7 @@ def process():
         csv_fname = name + "_uniform.csv"
         template_fname = name + "_uniform.json"
         if len(result) > 0:
-            data = table_analysis.read_tables(image_path, result[0], result[1], result[2], fpath=OUTPUT_FOLDER, #+ 'table/',
+            data = table_analysis.read_tables(image_path, result[0], result[1], fpath=OUTPUT_FOLDER, #+ 'table/',
                                                                                          csv_name=csv_fname, template_name=template_fname)
             response = [{
                 'type': 'uniform_table',
