@@ -121,37 +121,6 @@ def return_table(boxes: List[Box]) -> List[Box]:
     
     return boxes_with_siblings
 
-    # tables = []
-    # # take each box and compare it to all others
-    # for i, (x, y, w, h) in enumerate(box): # Box X
-    #     found_vertical = False
-    #     found_horizontal = False
-
-    #     for (a, b, c, d) in box[:i] + box[i + 1:]: # Box A
-    #         # If Box A is adjacent to box X vertically
-    #         if abs(x-a) < 10 and not found_vertical:
-    #             if min(y, b) == y:
-    #                 height = h
-    #             else:
-    #                 height = d
-
-    #             if abs(y - b) < height + 5:
-    #                 found_vertical = True
-    #         # If Box A is adjacent to box X horizontally
-    #         elif abs(y-b) < 10 and not found_horizontal:
-    #             if min(x, a) == x:
-    #                 width = w
-    #             else:
-    #                 width = c
-
-    #             if abs(x - a) < width + 5:
-    #                 found_horizontal = True
-
-    #     if found_horizontal and found_vertical:
-    #         tables.append([x, y, w, h])
-
-    # return tables
-
 
 # only look at lines that are over 50% width of page
 # sort lines, return clusters of lines
@@ -534,174 +503,126 @@ def extract_tables(path, outfile: str = None, debug: bool = False):
         only_table = util.remove_all_except_boxes(im_vh, [table])
         final_boxes, countcol = check_table(only_table, outfile=outfile, debug=debug)
         if final_boxes:
-            table_content = read_tables(path, final_boxes, countcol)
+            table_content = read_tables(im_color, final_boxes, countcol)
             tables.append(table_content)
     
     return tables
+
+def boxes_to_table(table_boxes: List[Box]) -> List[List[Box]]:
+    """
+    Arranges a list of boxes to table (list of rows of boxes)
+    -----
+    Args:
+        table_boxes: list of boxes sorted in top-to-bottom order
+    """
+    mean_height = np.mean([box.get_height() for box in table_boxes])
+
+    table = []
+    current_row = [table_boxes[0]]
+    previous_Y = current_row[-1].get_Y_range()[0]
+
+    for i, box in enumerate(table_boxes[1:]):
+        this_Y = box.get_Y_range()[0]
+        same_row_as_previous = this_Y <= previous_Y + mean_height / 2
+
+        if not same_row_as_previous: # Start a new row
+            table.append(current_row)
+            current_row = []
+
+        current_row.append(box)
+
+        if i == len(table_boxes) - 1:
+            table.append(current_row)
+        
+        previous_Y = this_Y
+    
+    return table
 
 
 def check_table(img_vh, outfile=None, debug=False):
     """
     Algorithm from here: https://towardsdatascience.com/a-table-detection-cell-recognition-and-text-extraction-algorithm-to-convert-tables-to-excel-files-902edcf289ec
     """
-    # img = cv2.imread(path, 0)
-    # im_color = cv2.imread(path)
-
-    # thresholding the image to a binary image and inverting
-    # thresh, img_bin = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-    # img_bin = 255 - img_bin
-
-    # # Kernel lengths to extract horizontal and vertical lines
-    # ver_kernel_len = np.array(img).shape[1] // 50
-    # hor_kernel_len = np.array(img).shape[0] // 40
-
-    # # Defining kernels to detect all vertical and horizontal lines of image
-    # ver_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, ver_kernel_len))
-    # hor_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (hor_kernel_len, 1))
-
-    # # Changing to iterations 1 impacts detection of blank lines
-    # vertical_lines = cv2.erode(img_bin, ver_kernel, iterations=1)
-    # vertical_lines = cv2.dilate(vertical_lines, ver_kernel, iterations=1)
-
-    # horizontal_lines = cv2.erode(img_bin, hor_kernel, iterations=1)
-    # horizontal_lines = cv2.dilate(horizontal_lines, hor_kernel, iterations=1)
-
-    # # Combine horizontal and vertical lines in a new third image, with both having same weight.
-    # img_vh = cv2.addWeighted(vertical_lines, 0.5, horizontal_lines, 0.5, 0.0)
-    # # Eroding and thesholding the image --- Not eroding though ---
-    # _, img_vh = cv2.threshold(img_vh, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-    # im_vh_color = cv2.cvtColor(img_vh, cv2.COLOR_GRAY2BGR)
-    # im_vh_color = cv2.bitwise_not(im_vh_color)
-    # util.show_image(im_vh_color, delay=0)
-    # patches = util.get_document_segmentation(im_vh_color, dilate_kernel_size=(1,1))
-    # print(f'{len(patches)} patches found')
-    # util.draw_contours(im_vh_color, patches)
-    # if debug:
-    #     util.show_image(im_vh_color, delay=0)
-
-    # bitxor = cv2.bitwise_xor(img, img_vh)
-    #bitnot = cv2.bitwise_not(bitxor)
-
-    # im_vh, tables = get_table_segments(im_color, debug=debug)
     # Detect contours for following box detection
     contours, _ = cv2.findContours(img_vh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
     boxes = [Box(contour) for contour in contours]
-
     # Sort all the contours by top to bottom.
     boxes = sort_contours(boxes, method='top-to-bottom')
-
-    # Creating a list of heights for all detected boxes
-    heights = [box.get_height() for box in boxes]
-    # Get mean of heights
-    mean_height = np.mean(heights)
-
-    # Create list box to store all boxes in
-    box = []
+    # Filter only boxes of reasonable height
     boxes = [box for box in boxes if 50 < box.get_width() < 1000 and 25 < box.get_height() < 800]
-
-    # util.draw_contours(im_color, boxes, random_color=True)
-    # util.show_image(im_color, delay=0)
+    print(f'{len(boxes)} cells found')
+    # Filter out boxes which are duplicate or don't have any siblings
+    boxes = remove_duplicate_boxes(boxes)
+    table_boxes = return_table(boxes)
     
 
-    # Creating two lists to define row and column in which cell is located
-    row = []
-    column = []
-
-    if len(boxes) == 0:
-        print('NO UNIFORM TABLE FOUND')
+    if len(table_boxes) == 0:
+        print('Not a Table')
         return None, 0
     else:
-        print('boxes found: ', len(boxes))
-        # Sorting the boxes to their respective row and column
-        boxes = remove_duplicate_boxes(boxes)
-        table_boxes = return_table(boxes)
-        # boxes = [(box.get_X_range()[0], box.get_Y_range()[0], box.get_width(), box.get_height()) for box in table_boxes]
-        # box = boxes
-        # util.draw_contours(im_color, table_boxes, random_color=True)
+        print('Table Found')
+        # Get mean of all the box heights
+        # mean_height = np.mean([box.get_height() for box in table_boxes])
 
-        # patches = util.get_document_segmentation(im_color, dilate_kernel_size=(10,2))
-        # util.draw_contours(im_color, patches)
+        # table = []
+        # current_row = [table_boxes[0]]
+        # previous_Y = current_row[-1].get_Y_range()[0]
+        # for i, box in enumerate(table_boxes[1:]):
+        #     this_Y = box.get_Y_range()[0]
+        #     same_row_as_previous = this_Y <= previous_Y + mean_height / 2
 
-        # if debug:
-        #     util.show_image(im_color, delay=0)
+        #     if not same_row_as_previous: # Start a new row
+        #         table.append(current_row)
+        #         current_row = []
 
+        #     current_row.append(box)
 
-        # if outfile:
-        #     cv2.imwrite(outfile, im_color)
-        #     print('Saving color image')
+        #     if i == len(table_boxes) - 1:
+        #         table.append(current_row)
+            
+        #     previous_Y = this_Y
+        table = boxes_to_table(table_boxes)
+        # calculating maximum number of cells in a row
+        countcol = max([len(r) for r in table])
 
-        if len(table_boxes) == 0:
-            print('NO TABLE FOUND')
-            return None, 0
+        # Retrieving the x-coordinate of the center of each column assuming each row has same number of cells
+        center = np.array([int(np.mean(cell.get_X_range())) for cell in table[0]])
+        center.sort()
 
-        else:
-            table = []
-            current_row = [table_boxes[0]]
-            previous_Y = current_row[-1].get_Y_range()[0]
-            for i, box in enumerate(table_boxes[1:]):
-                this_Y = box.get_Y_range()[0]
-                same_row_as_previous = this_Y <= previous_Y + mean_height / 2
+        # Regarding the distance to the columns center, the boxes are arranged in respective order
+        finalboxes = []
 
-                if not same_row_as_previous: # Start a new row
-                    table.append(current_row)
-                    current_row = []
+        for row in table:
+            sorted_row = []
+            for _ in range(countcol):
+                sorted_row.append([])
+            for cell in row:
+                diff = abs(center - (cell.get_X_range()[0] + cell.get_width() / 4))
+                min_idx = np.argmin(diff)
+                sorted_row[min_idx].append(cell)
 
-                current_row.append(box)
-
-                if i == len(table_boxes) - 1:
-                    table.append(current_row)
-                
-                previous_Y = this_Y
-
-            # calculating maximum number of cells in a row
-            countcol = max([len(r) for r in table])
-
-            # Retrieving the center of each column
-            i = 0
-            center = np.array([int(np.mean(cell.get_X_range())) for cell in table[i]])
-            center.sort()
-
-            # Regarding the distance to the columns center, the boxes are arranged in respective order
-            finalboxes = []
-
-            for row in table:
-                sorted_row = []
-                for _ in range(countcol):
-                    sorted_row.append([])
-                for cell in row:
-                    diff = abs(center - (cell.get_X_range()[0] + cell.get_width() / 4))
-                    min_idx = np.argmin(diff)
-                    sorted_row[min_idx].append(cell)
-                    # sorted_row[min_idx].append([cell.get_X_range()[0], cell.get_Y_range()[0], cell.get_width(), cell.get_height()])
-
-                finalboxes.append(sorted_row)
+            finalboxes.append(sorted_row)
+        
+        return finalboxes, countcol
+        # Ideally I guess you would want to store final boxes in json file
 
 
-            print('UNIFORM TABLE FOUND')
-            return finalboxes, countcol
-            # Ideally I guess you would want to store final boxes in json file
-
-
-def read_tables(path, finalboxes, countcol, fpath="", csv_name = "", template_name=""):
+def read_tables(image: np.ndarray, finalboxes: List[List[List[Box]]], countcol: int, fpath: str = "",\
+                csv_name: str = "", template_name: str = ""):
 
     EXCLUDE_SYMBOLS = ['!', '®', '™', '?', "|", "~"]
-
-    full_text = full_pdf_detection(path)
-
-    unmodified_img = cv2.imread(path, 0)
 
     # from every single image-based cell/box the strings are extracted via pytesseract and stored in a list
     pd.set_option('display.max_columns', None)
 
-    empty_boxes = {}
+    # empty_boxes = {}
     table_contents = []
     for row in finalboxes:
         row_content = []
         for cell in row:
             cell_content = ''
             for box in cell:
-                cell_content += util.read_text_in_patch(unmodified_img, box)
+                cell_content += util.read_text_in_patch(image, box)
             row_content.append(cell_content.strip())
         table_contents.append(row_content)
 
