@@ -60,7 +60,8 @@ def get_document_segmentation(image, dilate_kernel_size: Tuple[int, int] = (10, 
         vertices = tuple(vertices[i] - padding[i] for i in range(4))
         boxes.append(Box(vertices))
         
-    cv2.imshow('dilate', dilate)
+    # cv2.imshow('dilate', dilate)
+    # show_image(dilate, delay=0)
     return boxes
 
 
@@ -185,3 +186,15 @@ def read_text_in_patch(image: np.ndarray, patch: Box) -> str:
             final_text += char
 
     return final_text.replace('\n', ' ')
+
+
+def remove_all_except_boxes(image: np.ndarray, boxes: List[Box]) -> np.ndarray:
+    """
+    Given an image and a list of boxes, removes everything outside of the boxes
+    """
+    final_img = np.zeros(image.shape, np.uint8)
+    for box in boxes:
+        box_X, box_Y = box.get_X_range(), box.get_Y_range()
+        final_img[box_Y[0]:box_Y[1], box_X[0]:box_X[1]] = image[box_Y[0]:box_Y[1], box_X[0]:box_X[1]].copy()
+
+    return final_img

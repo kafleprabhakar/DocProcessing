@@ -469,21 +469,24 @@ def get_horizontal_lines(path, jsonFile=None):
 
     return label, data
 
-def check_table(path, outfile=None, debug=False):
+def get_table_segments(image: np.ndarray, debug: bool = False) -> Tuple[np.ndarray, List[Box]]:
     """
-    Algorithm from here: https://towardsdatascience.com/a-table-detection-cell-recognition-and-text-extraction-algorithm-to-convert-tables-to-excel-files-902edcf289ec
+    Given a color image, returns a list of bounding boxes for each table in the image.
+    -----
+    Args:
+        image: numpy array representing the image
+        debug: whether or not to display the bounding boxes
+    Returns:
+        A tuple of two elements where the first element is the grayscale image of all the
+        table-like structures and second element is the list of bounding boxes detected
     """
-    img = cv2.imread(path, 0)
-    im_color = cv2.imread(path)
-
-    # thresholding the image to a binary image and inverting
-    thresh, img_bin = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    thresh, img_bin = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
     img_bin = 255 - img_bin
 
     # Kernel lengths to extract horizontal and vertical lines
-    ver_kernel_len = np.array(img).shape[1] // 50
-    hor_kernel_len = np.array(img).shape[0] // 40
-
+    ver_kernel_len = np.array(image).shape[1] // 50
+    hor_kernel_len = np.array(image).shape[0] // 40
     # Defining kernels to detect all vertical and horizontal lines of image
     ver_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, ver_kernel_len))
     hor_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (hor_kernel_len, 1))
@@ -499,16 +502,87 @@ def check_table(path, outfile=None, debug=False):
     img_vh = cv2.addWeighted(vertical_lines, 0.5, horizontal_lines, 0.5, 0.0)
     # Eroding and thesholding the image --- Not eroding though ---
     _, img_vh = cv2.threshold(img_vh, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    
+    # Segment the obtained image into individual tables
+    im_vh_color = cv2.cvtColor(img_vh, cv2.COLOR_GRAY2BGR)
+    im_vh_color = cv2.bitwise_not(im_vh_color)
 
+    table_boxes = util.get_document_segmentation(im_vh_color, dilate_kernel_size=(1,1))
+    
+    util.draw_contours(im_vh_color, table_boxes)
+    if debug:
+        util.show_image(im_vh_color, delay=0)
+    
+    return img_vh, table_boxes
+
+
+def extract_tables(path, outfile: str = None, debug: bool = False):
+    """
+    Given a path to an image, extract the tables from the PDF and save them as a CSV file.
+    -----
+    Args:
+        path: path to the image
+        outfile: path to the output CSV file
+        debug: whether or not to display the tables
+    """
+    im_color = cv2.imread(path)
+    im_vh, table_boxes = get_table_segments(im_color, debug=debug)
+    table_boxes.reverse() # since the boxes are detected bottom to top
+
+    tables = []
+    for table in table_boxes:
+        only_table = util.remove_all_except_boxes(im_vh, [table])
+        final_boxes, countcol = check_table(only_table, outfile=outfile, debug=debug)
+        if final_boxes:
+            table_content = read_tables(path, final_boxes, countcol)
+            tables.append(table_content)
+    
+    return tables
+
+
+def check_table(img_vh, outfile=None, debug=False):
+    """
+    Algorithm from here: https://towardsdatascience.com/a-table-detection-cell-recognition-and-text-extraction-algorithm-to-convert-tables-to-excel-files-902edcf289ec
+    """
+    # img = cv2.imread(path, 0)
+    # im_color = cv2.imread(path)
+
+    # thresholding the image to a binary image and inverting
+    # thresh, img_bin = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    # img_bin = 255 - img_bin
+
+    # # Kernel lengths to extract horizontal and vertical lines
+    # ver_kernel_len = np.array(img).shape[1] // 50
+    # hor_kernel_len = np.array(img).shape[0] // 40
+
+    # # Defining kernels to detect all vertical and horizontal lines of image
+    # ver_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, ver_kernel_len))
+    # hor_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (hor_kernel_len, 1))
+
+    # # Changing to iterations 1 impacts detection of blank lines
+    # vertical_lines = cv2.erode(img_bin, ver_kernel, iterations=1)
+    # vertical_lines = cv2.dilate(vertical_lines, ver_kernel, iterations=1)
+
+    # horizontal_lines = cv2.erode(img_bin, hor_kernel, iterations=1)
+    # horizontal_lines = cv2.dilate(horizontal_lines, hor_kernel, iterations=1)
+
+    # # Combine horizontal and vertical lines in a new third image, with both having same weight.
+    # img_vh = cv2.addWeighted(vertical_lines, 0.5, horizontal_lines, 0.5, 0.0)
+    # # Eroding and thesholding the image --- Not eroding though ---
+    # _, img_vh = cv2.threshold(img_vh, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
     # im_vh_color = cv2.cvtColor(img_vh, cv2.COLOR_GRAY2BGR)
-    # patches = util.get_document_segmentation(im_vh_color, dilate_kernel_size=(10,2))
+    # im_vh_color = cv2.bitwise_not(im_vh_color)
+    # util.show_image(im_vh_color, delay=0)
+    # patches = util.get_document_segmentation(im_vh_color, dilate_kernel_size=(1,1))
+    # print(f'{len(patches)} patches found')
     # util.draw_contours(im_vh_color, patches)
     # if debug:
-    #     util.show_image(im_color, delay=0)
+    #     util.show_image(im_vh_color, delay=0)
 
     # bitxor = cv2.bitwise_xor(img, img_vh)
     #bitnot = cv2.bitwise_not(bitxor)
 
+    # im_vh, tables = get_table_segments(im_color, debug=debug)
     # Detect contours for following box detection
     contours, _ = cv2.findContours(img_vh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -536,7 +610,7 @@ def check_table(path, outfile=None, debug=False):
 
     if len(boxes) == 0:
         print('NO UNIFORM TABLE FOUND')
-        return []
+        return None, 0
     else:
         print('boxes found: ', len(boxes))
         # Sorting the boxes to their respective row and column
@@ -544,22 +618,22 @@ def check_table(path, outfile=None, debug=False):
         table_boxes = return_table(boxes)
         # boxes = [(box.get_X_range()[0], box.get_Y_range()[0], box.get_width(), box.get_height()) for box in table_boxes]
         # box = boxes
-        util.draw_contours(im_color, table_boxes, random_color=True)
+        # util.draw_contours(im_color, table_boxes, random_color=True)
 
         # patches = util.get_document_segmentation(im_color, dilate_kernel_size=(10,2))
         # util.draw_contours(im_color, patches)
 
-        if debug:
-            util.show_image(im_color, delay=0)
+        # if debug:
+        #     util.show_image(im_color, delay=0)
 
 
-        if outfile:
-            cv2.imwrite(outfile, im_color)
-            print('Saving color image')
+        # if outfile:
+        #     cv2.imwrite(outfile, im_color)
+        #     print('Saving color image')
 
         if len(table_boxes) == 0:
             print('NO TABLE FOUND')
-            return []
+            return None, 0
 
         else:
             table = []
@@ -605,7 +679,7 @@ def check_table(path, outfile=None, debug=False):
 
 
             print('UNIFORM TABLE FOUND')
-            return [finalboxes, countcol]
+            return finalboxes, countcol
             # Ideally I guess you would want to store final boxes in json file
 
 
@@ -617,12 +691,8 @@ def read_tables(path, finalboxes, countcol, fpath="", csv_name = "", template_na
 
     unmodified_img = cv2.imread(path, 0)
 
-    # For compatibility for the time being
-    # finalboxes = [[[(box.get_X_range()[0], box.get_Y_range()[0], box.get_width(), box.get_height()) for box in cell] for cell in row] for row in finalboxes]
-
     # from every single image-based cell/box the strings are extracted via pytesseract and stored in a list
     pd.set_option('display.max_columns', None)
-    outer = []
 
     empty_boxes = {}
     table_contents = []
@@ -634,65 +704,8 @@ def read_tables(path, finalboxes, countcol, fpath="", csv_name = "", template_na
                 cell_content += util.read_text_in_patch(unmodified_img, box)
             row_content.append(cell_content.strip())
         table_contents.append(row_content)
-    # for i in range(len(finalboxes)):
-    #     for j in range(len(finalboxes[i])):
-    #         inner = ''
-    #         if len(finalboxes[i][j]) == 0:
-    #             outer.append(' ')
-    #         else:
-    #             for k in range(len(finalboxes[i][j])):
-    #                 x, y, w, h = finalboxes[i][j][k][0], finalboxes[i][j][k][1], finalboxes[i][j][k][2], \
-    #                              finalboxes[i][j][k][3]
-
-    #                 full_text_word = ''
-
-    #                 n_boxes = len(full_text['level'])
-    #                 for n in range(n_boxes):
-    #                     (a, b, c, d) = (
-    #                     full_text['left'][n], full_text['top'][n], full_text['width'][n], full_text['height'][n])
-    #                     if x - 7 < a < (x + w) and y - 7 < b < (y + h) - 10 and (a + c) < (x + w):
-    #                         full_text_word = full_text['text'][n]
-    #                         break
-    #                         #print('Full text: {t}'.format(t=full_text['text'][n]))
-
-    #                 finalimg = unmodified_img[y:y + h, x:x + w]
-
-    #                 unmod_text = pytesseract.image_to_string(finalimg)
-
-    #                 kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 1))
-    #                 border = cv2.copyMakeBorder(finalimg, 2, 2, 2, 2, cv2.BORDER_CONSTANT, value=[255, 255])
-    #                 resizing = cv2.resize(border, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-
-    #                 dilation = cv2.dilate(resizing, kernel, iterations=1)
-
-    #                 erosion = cv2.erode(dilation, kernel, iterations=1)
-
-    #                 out = pytesseract.image_to_string(erosion)
-    #                 #print('Ersosion: ' + str(out))
-    #                 if len(out) == 0:
-    #                     if len(unmod_text) > 0:
-    #                         out = unmod_text
-    #                     elif len(full_text_word) > 0:
-    #                         out = full_text_word
-    #                     else:
-    #                         out = pytesseract.image_to_string(erosion, config='--psm 3')
-    #                 new_out = ''
-    #                 for c in list(out):
-    #                     if c not in EXCLUDE_SYMBOLS:
-    #                         new_out += c
-
-    #                 inner += new_out
-    #                 if inner == "" or inner == " ":
-    #                     if j not in empty_boxes:
-    #                         empty_boxes[j] = {}
-    #                     empty_boxes[j][i] = finalboxes[i][j][0]
-
-    #             outer.append(inner.strip().replace('\n', ' '))
-
 
     # Creating a dataframe of the generated OCR list
-    # arr = np.array(outer).reshape(len(finalboxes), countcol)
-    # print('arr', arr)
     df = pd.DataFrame(table_contents)
 
     if len(fpath) > 0:

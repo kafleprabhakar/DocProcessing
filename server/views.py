@@ -36,18 +36,27 @@ def process():
         }
     elif action == 'uniform_table':
         img_fname = name + "_uniform.jpg"
-        result = table_analysis.check_table(image_path, outfile=OUTPUT_FOLDER + img_fname) #check for uniform table
-        csv_fname = name + "_uniform.csv"
-        template_fname = name + "_uniform.json"
-        if len(result) > 0:
-            data = table_analysis.read_tables(image_path, result[0], result[1], fpath=OUTPUT_FOLDER, #+ 'table/',
-                                                                                         csv_name=csv_fname, template_name=template_fname)
-            response = [{
-                'type': 'uniform_table',
-                'data': data
-            }]
-        else:
-            response = []
+        result = table_analysis.extract_tables(image_path, outfile=OUTPUT_FOLDER + img_fname) #check for uniform table
+        # result = table_analysis.check_table(image_path, outfile=OUTPUT_FOLDER + img_fname) #check for uniform table
+        # csv_fname = name + "_uniform.csv"
+        # template_fname = name + "_uniform.json"
+        # if len(result) > 0:
+        #     data = table_analysis.read_tables(image_path, result[0], result[1], fpath=OUTPUT_FOLDER, #+ 'table/',
+        #                                                                                  csv_name=csv_fname, template_name=template_fname)
+        #     response = [{
+        #         'type': 'uniform_table',
+        #         'data': data
+        #     }]
+        # else:
+        #     response = []
+
+        response = []
+        for table in result:
+            if len(table) > 0:
+                response.append({
+                    'type': 'uniform_table',
+                    'data': table
+                })
         response = {
             'clusters': response,
             'image': output_fpath + img_fname

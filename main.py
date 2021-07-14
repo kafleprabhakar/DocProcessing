@@ -49,13 +49,15 @@ def make_table_template(filepath, table_type="uniform"):
     im_paths = util.pdf_to_image(filepath)
 
     if table_type == "uniform":
-        result = table_analysis.check_table(im_paths[0], outfile = img_path) #check for uniform table
+        result = table_analysis.extract_tables(im_paths[2], outfile=img_path, debug=True)
+        # result = table_analysis.check_table(im_paths[0], outfile = img_path) #check for uniform table
 
-        if len(result) > 0:
-            result = table_analysis.read_tables(im_paths[0], result[0], result[1], fpath=output_fpath, #+ 'table/',
-                                    csv_name=csv_fname, template_name=template_fname)
-            print('the result', result)
-            result = tabulate(result, tablefmt='grid')
+        # if len(result) > 0:
+        #     result = table_analysis.read_tables(im_paths[0], result[0], result[1], fpath=output_fpath, #+ 'table/',
+        #                             csv_name=csv_fname, template_name=template_fname)
+        #     print('the result', result)
+        for table in result:
+            print(tabulate(table, tablefmt='grid'))
     else:
         result = table_analysis.get_horizontal_lines(im_paths[0], output_fpath + template_fname)
     print("The final results: ")

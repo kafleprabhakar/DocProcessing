@@ -55,14 +55,16 @@ if __name__ == "__main__":
     #     util.show_image(image, delay=0)
     #     cv2.imwrite(f"img/bnm_c_{i}.jpg", image)
 
-    result = table_analysis.check_table(path, debug=True)
-    print('the result: ', result)
+    result = table_analysis.extract_tables(path, debug=True)
+    print(result)
+    # result = table_analysis.check_table(path, debug=True)
+    # print('the result: ', result)
 
-    if len(result) > 0:
-        result = table_analysis.read_tables(path, result[0], result[1])
-        print('the result', result)
-        result = tabulate(result, tablefmt='grid')
-        print(result)
+    # if len(result) > 0:
+    #     result = table_analysis.read_tables(path, result[0], result[1])
+    #     print('the result', result)
+    #     result = tabulate(result, tablefmt='grid')
+    #     print(result)
 
     # # [bin]
     # # Apply adaptiveThreshold at the bitwise_not of gray, notice the ~ symbol
