@@ -37,7 +37,7 @@ def process():
     elif action == 'uniform_table':
         img_fname = name + "_uniform.jpg"
         result = table_analysis.extract_tables(image_path, outfile=OUTPUT_FOLDER + img_fname) #check for uniform table
-        # result = table_analysis.check_table(image_path, outfile=OUTPUT_FOLDER + img_fname) #check for uniform table
+        # result = table_analysis.return_table(image_path, outfile=OUTPUT_FOLDER + img_fname) #check for uniform table
         # csv_fname = name + "_uniform.csv"
         # template_fname = name + "_uniform.json"
         # if len(result) > 0:

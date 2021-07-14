@@ -109,7 +109,10 @@ def is_horizontally_adjacent(this: Box, that: Box) -> bool:
 # No single line of boxes allowed
 # Each box must have one directly above/below and directly left/right
 # Returns all boxes in the table
-def return_table(boxes: List[Box]) -> List[Box]:
+def filter_boxes_with_siblings(boxes: List[Box]) -> List[Box]:
+    """
+    Given a list of boxes, removes all boxes with no horizontal and vertical siblings
+    """
     boxes_with_siblings = []
     for i, box in enumerate(boxes):
         remaining_boxes = boxes[:i] + boxes[i + 1:]
@@ -485,29 +488,6 @@ def get_table_segments(image: np.ndarray, debug: bool = False) -> Tuple[np.ndarr
     return img_vh, table_boxes
 
 
-def extract_tables(path, outfile: str = None, debug: bool = False):
-    """
-    Given a path to an image, extract the tables from the PDF and save them as a CSV file.
-    -----
-    Args:
-        path: path to the image
-        outfile: path to the output CSV file
-        debug: whether or not to display the tables
-    """
-    im_color = cv2.imread(path)
-    im_vh, table_boxes = get_table_segments(im_color, debug=debug)
-    table_boxes.reverse() # since the boxes are detected bottom to top
-
-    tables = []
-    for table in table_boxes:
-        only_table = util.remove_all_except_boxes(im_vh, [table])
-        final_table = check_table(only_table, outfile=outfile, debug=debug)
-        if final_table:
-            table_content = read_tables(im_color, final_table)
-            tables.append(table_content)
-    
-    return tables
-
 def boxes_to_table(table_boxes: List[Box]) -> List[List[Box]]:
     """
     Arranges a list of boxes to table (list of rows of boxes)
@@ -572,7 +552,7 @@ def sort_table_cells(table: List[List[Box]]) -> List[List[List[Box]]]:
     return final_table
 
 
-def check_table(img_vh, outfile=None, debug=False):
+def return_table(img_vh, outfile=None, debug=False):
     """
     Algorithm from here: https://towardsdatascience.com/a-table-detection-cell-recognition-and-text-extraction-algorithm-to-convert-tables-to-excel-files-902edcf289ec
     """
@@ -586,7 +566,7 @@ def check_table(img_vh, outfile=None, debug=False):
     
     # Filter out boxes which are duplicate or don't have any siblings
     boxes = remove_duplicate_boxes(boxes)
-    table_boxes = return_table(boxes)
+    table_boxes = filter_boxes_with_siblings(boxes)
     
 
     if len(table_boxes) == 0:
@@ -596,41 +576,31 @@ def check_table(img_vh, outfile=None, debug=False):
         print('Table Found')
         table = boxes_to_table(table_boxes)
         table = sort_table_cells(table)
-        # calculating maximum number of cells in a row
-        # countcol = max([len(r) for r in table])
-
-        # # Retrieving the x-coordinate of the center of each column assuming each row has same number of cells
-        # center = np.array([int(np.mean(cell.get_X_range())) for cell in table[0]])
-        # center.sort()
-
-        # # Regarding the distance to the columns center, the boxes are arranged in respective order
-        # finalboxes = []
-
-        # for row in table:
-        #     sorted_row = []
-        #     for _ in range(countcol):
-        #         sorted_row.append([])
-        #     for cell in row:
-        #         diff = abs(center - (cell.get_X_range()[0] + cell.get_width() / 4))
-        #         min_idx = np.argmin(diff)
-        #         sorted_row[min_idx].append(cell)
-
-        #     finalboxes.append(sorted_row)
         
         return table
 
 
-def read_tables(image: np.ndarray, finalboxes: List[List[List[Box]]], fpath: str = "",\
+def read_tables(image: np.ndarray, table: List[List[List[Box]]], fpath: str = "",\
                 csv_name: str = "", template_name: str = ""):
-
+    """
+    Reads the content of the table in the given image
+    -----
+    Args:
+        image: image to read table from
+        table: table to read
+        fpath: path of the folder to save the csv and template in
+        csv_name: name of the csv file to save
+        template_name: name of the template json file to save
+    Returns:
+        List of lists of strings representing the content of the table
+    """
     EXCLUDE_SYMBOLS = ['!', '®', '™', '?', "|", "~"]
-
     # from every single image-based cell/box the strings are extracted via pytesseract and stored in a list
     pd.set_option('display.max_columns', None)
 
     # empty_boxes = {}
     table_contents = []
-    for row in finalboxes:
+    for row in table:
         row_content = []
         for cell in row:
             cell_content = ''
@@ -652,3 +622,27 @@ def read_tables(image: np.ndarray, finalboxes: List[List[List[Box]]], fpath: str
         util.edit_json(jsonFile, final_data)
 
     return df.to_dict(orient='records')
+
+
+def extract_tables(path, outfile: str = None, debug: bool = False):
+    """
+    Given a path to an image, extract the tables from the PDF and save them as a CSV file.
+    -----
+    Args:
+        path: path to the image
+        outfile: path to the output CSV file
+        debug: whether or not to display the tables
+    """
+    im_color = cv2.imread(path)
+    im_vh, table_boxes = get_table_segments(im_color, debug=debug)
+    table_boxes.reverse() # since the boxes are detected bottom to top
+
+    tables = []
+    for table in table_boxes:
+        only_table = util.remove_all_except_boxes(im_vh, [table])
+        final_table = return_table(only_table, outfile=outfile, debug=debug)
+        if final_table:
+            table_content = read_tables(im_color, final_table)
+            tables.append(table_content)
+    
+    return tables

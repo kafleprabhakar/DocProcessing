@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
     result = table_analysis.extract_tables(path, debug=True)
     print(result)
-    # result = table_analysis.check_table(path, debug=True)
+    # result = table_analysis.return_table(path, debug=True)
     # print('the result: ', result)
 
     # if len(result) > 0:

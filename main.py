@@ -50,7 +50,7 @@ def make_table_template(filepath, table_type="uniform"):
 
     if table_type == "uniform":
         result = table_analysis.extract_tables(im_paths[2], outfile=img_path, debug=True)
-        # result = table_analysis.check_table(im_paths[0], outfile = img_path) #check for uniform table
+        # result = table_analysis.return_table(im_paths[0], outfile = img_path) #check for uniform table
 
         # if len(result) > 0:
         #     result = table_analysis.read_tables(im_paths[0], result[0], result[1], fpath=output_fpath, #+ 'table/',
