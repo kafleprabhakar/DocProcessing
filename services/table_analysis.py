@@ -501,9 +501,9 @@ def extract_tables(path, outfile: str = None, debug: bool = False):
     tables = []
     for table in table_boxes:
         only_table = util.remove_all_except_boxes(im_vh, [table])
-        final_boxes, countcol = check_table(only_table, outfile=outfile, debug=debug)
-        if final_boxes:
-            table_content = read_tables(im_color, final_boxes, countcol)
+        final_table = check_table(only_table, outfile=outfile, debug=debug)
+        if final_table:
+            table_content = read_tables(im_color, final_table)
             tables.append(table_content)
     
     return tables
@@ -539,6 +539,39 @@ def boxes_to_table(table_boxes: List[Box]) -> List[List[Box]]:
     return table
 
 
+def sort_table_cells(table: List[List[Box]]) -> List[List[List[Box]]]:
+    """
+    Given a table of rows of unsorted cells, sorts the cells in each row by their x-coordinate.
+    -----
+    Returns:
+        Table where each cell is a list of boxes in that cell
+    """
+    # calculating maximum number of cells in a row
+    countcol = max([len(row) for row in table])
+
+    # Retrieving the x-coordinate of the center of each column assuming each row has same number of cells
+    center = np.array([int(np.mean(cell.get_X_range())) for cell in table[0]])
+    center.sort()
+
+    # Regarding the distance to the columns center, the boxes are arranged in respective order
+    final_table = []
+
+    for row in table:
+        sorted_row = []
+
+        for _ in range(countcol): # Each row will have countcol number of cells
+            sorted_row.append([])
+        
+        for cell in row:
+            diff = abs(center - (cell.get_X_range()[0] + cell.get_width() / 4))
+            min_idx = np.argmin(diff)
+            sorted_row[min_idx].append(cell)
+
+        final_table.append(sorted_row)
+    
+    return final_table
+
+
 def check_table(img_vh, outfile=None, debug=False):
     """
     Algorithm from here: https://towardsdatascience.com/a-table-detection-cell-recognition-and-text-extraction-algorithm-to-convert-tables-to-excel-files-902edcf289ec
@@ -550,7 +583,7 @@ def check_table(img_vh, outfile=None, debug=False):
     boxes = sort_contours(boxes, method='top-to-bottom')
     # Filter only boxes of reasonable height
     boxes = [box for box in boxes if 50 < box.get_width() < 1000 and 25 < box.get_height() < 800]
-    print(f'{len(boxes)} cells found')
+    
     # Filter out boxes which are duplicate or don't have any siblings
     boxes = remove_duplicate_boxes(boxes)
     table_boxes = return_table(boxes)
@@ -558,56 +591,36 @@ def check_table(img_vh, outfile=None, debug=False):
 
     if len(table_boxes) == 0:
         print('Not a Table')
-        return None, 0
+        return None
     else:
         print('Table Found')
-        # Get mean of all the box heights
-        # mean_height = np.mean([box.get_height() for box in table_boxes])
-
-        # table = []
-        # current_row = [table_boxes[0]]
-        # previous_Y = current_row[-1].get_Y_range()[0]
-        # for i, box in enumerate(table_boxes[1:]):
-        #     this_Y = box.get_Y_range()[0]
-        #     same_row_as_previous = this_Y <= previous_Y + mean_height / 2
-
-        #     if not same_row_as_previous: # Start a new row
-        #         table.append(current_row)
-        #         current_row = []
-
-        #     current_row.append(box)
-
-        #     if i == len(table_boxes) - 1:
-        #         table.append(current_row)
-            
-        #     previous_Y = this_Y
         table = boxes_to_table(table_boxes)
+        table = sort_table_cells(table)
         # calculating maximum number of cells in a row
-        countcol = max([len(r) for r in table])
+        # countcol = max([len(r) for r in table])
 
-        # Retrieving the x-coordinate of the center of each column assuming each row has same number of cells
-        center = np.array([int(np.mean(cell.get_X_range())) for cell in table[0]])
-        center.sort()
+        # # Retrieving the x-coordinate of the center of each column assuming each row has same number of cells
+        # center = np.array([int(np.mean(cell.get_X_range())) for cell in table[0]])
+        # center.sort()
 
-        # Regarding the distance to the columns center, the boxes are arranged in respective order
-        finalboxes = []
+        # # Regarding the distance to the columns center, the boxes are arranged in respective order
+        # finalboxes = []
 
-        for row in table:
-            sorted_row = []
-            for _ in range(countcol):
-                sorted_row.append([])
-            for cell in row:
-                diff = abs(center - (cell.get_X_range()[0] + cell.get_width() / 4))
-                min_idx = np.argmin(diff)
-                sorted_row[min_idx].append(cell)
+        # for row in table:
+        #     sorted_row = []
+        #     for _ in range(countcol):
+        #         sorted_row.append([])
+        #     for cell in row:
+        #         diff = abs(center - (cell.get_X_range()[0] + cell.get_width() / 4))
+        #         min_idx = np.argmin(diff)
+        #         sorted_row[min_idx].append(cell)
 
-            finalboxes.append(sorted_row)
+        #     finalboxes.append(sorted_row)
         
-        return finalboxes, countcol
-        # Ideally I guess you would want to store final boxes in json file
+        return table
 
 
-def read_tables(image: np.ndarray, finalboxes: List[List[List[Box]]], countcol: int, fpath: str = "",\
+def read_tables(image: np.ndarray, finalboxes: List[List[List[Box]]], fpath: str = "",\
                 csv_name: str = "", template_name: str = ""):
 
     EXCLUDE_SYMBOLS = ['!', '®', '™', '?', "|", "~"]
