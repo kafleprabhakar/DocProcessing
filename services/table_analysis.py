@@ -634,6 +634,7 @@ def extract_tables(path, outfile: str = None, debug: bool = False):
         debug: whether or not to display the tables
     """
     im_color = cv2.imread(path)
+    img_copy = im_color.copy()
     im_vh, table_boxes = get_table_segments(im_color, debug=debug)
     table_boxes.reverse() # since the boxes are detected bottom to top
 
@@ -641,8 +642,17 @@ def extract_tables(path, outfile: str = None, debug: bool = False):
     for table in table_boxes:
         only_table = util.remove_all_except_boxes(im_vh, [table])
         final_table = return_table(only_table, outfile=outfile, debug=debug)
+
         if final_table:
             table_content = read_tables(im_color, final_table)
             tables.append(table_content)
+        
+            all_cells = util.flatten_table(final_table)
+            util.draw_contours(img_copy, all_cells)
+    
+    if debug:
+        util.show_image(img_copy, delay=0)
+    if outfile:
+        cv2.imwrite(outfile, img_copy)
     
     return tables
