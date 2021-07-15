@@ -106,9 +106,7 @@ def is_horizontally_adjacent(this: Box, that: Box) -> bool:
     
     return False
 
-# No single line of boxes allowed
-# Each box must have one directly above/below and directly left/right
-# Returns all boxes in the table
+
 def filter_boxes_with_siblings(boxes: List[Box]) -> List[Box]:
     """
     Given a list of boxes, removes all boxes with no horizontal and vertical siblings
@@ -552,9 +550,13 @@ def sort_table_cells(table: List[List[Box]]) -> List[List[List[Box]]]:
     return final_table
 
 
-def return_table(img_vh, outfile=None, debug=False):
+def find_table(img_vh: np.ndarray) -> Optional[List[List[List[Box]]]]:
     """
-    Algorithm from here: https://towardsdatascience.com/a-table-detection-cell-recognition-and-text-extraction-algorithm-to-convert-tables-to-excel-files-902edcf289ec
+    Given a grayscale image with only a table (and no content), returns the table as a list of rows where each row
+    is a list of cells and each cell is represented by list of boxes it spans.
+
+    Algorithm inspired by:
+    https://towardsdatascience.com/a-table-detection-cell-recognition-and-text-extraction-algorithm-to-convert-tables-to-excel-files-902edcf289ec
     """
     # Detect contours for following box detection
     contours, _ = cv2.findContours(img_vh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -581,7 +583,7 @@ def return_table(img_vh, outfile=None, debug=False):
 
 
 def read_tables(image: np.ndarray, table: List[List[List[Box]]], fpath: str = "",\
-                csv_name: str = "", template_name: str = ""):
+                csv_name: str = "", template_name: str = "") -> List[List[str]]:
     """
     Reads the content of the table in the given image
     -----
@@ -625,7 +627,7 @@ def read_tables(image: np.ndarray, table: List[List[List[Box]]], fpath: str = ""
     return df.to_numpy().tolist()
 
 
-def extract_tables(path, outfile: str = None, debug: bool = False):
+def extract_tables(path, outfile: str = None, debug: bool = False) -> List[List[List[str]]]:
     """
     Given a path to an image, extract the tables from the PDF and save them as a CSV file.
     -----
@@ -642,7 +644,7 @@ def extract_tables(path, outfile: str = None, debug: bool = False):
     tables = []
     for table in table_boxes:
         only_table = util.remove_all_except_boxes(im_vh, [table])
-        final_table = return_table(only_table, outfile=outfile, debug=debug)
+        final_table = find_table(only_table)
 
         if final_table:
             table_content = read_tables(im_color, final_table)
