@@ -621,7 +621,8 @@ def read_tables(image: np.ndarray, table: List[List[List[Box]]], fpath: str = ""
 
         util.edit_json(jsonFile, final_data)
 
-    return df.to_dict(orient='records')
+    # return df.to_dict(orient='records')
+    return df.to_numpy().tolist()
 
 
 def extract_tables(path, outfile: str = None, debug: bool = False):

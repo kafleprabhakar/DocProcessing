@@ -37,7 +37,7 @@ function makeHTMLForm(clusters) {
       }
     } else if (cluster.type === 'uniform_table') {
       // clusterElement.append(json2Table(cluster.data));
-      clusterElement.innerHTML = json2Table(cluster.data);
+      clusterElement.innerHTML = buildTable(cluster.data);
     }
     htmlForm.appendChild(clusterElement);
   }
@@ -80,6 +80,20 @@ function json2Table(json) {
 	<table>`;
 
   return table;
+}
+
+function buildTable(table) {
+  let rows = table.map(row => {
+    let tds = row.map(cell => `<td>${cell}</td>`).join("");
+    return `<tr>${tds}</tr>`;
+  }).join("");
+  const htmlTable = `
+  <table class="table table-striped table-bordered">
+    <tbody>
+      ${rows}
+    </tbody>
+  </table>`;
+  return htmlTable;
 }
 
 function handleFormSubmit(e) {

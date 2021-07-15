@@ -55,8 +55,11 @@ if __name__ == "__main__":
     #     util.show_image(image, delay=0)
     #     cv2.imwrite(f"img/bnm_c_{i}.jpg", image)
 
-    result = table_analysis.extract_tables(path, debug=True)
-    print(result)
+    tables = table_analysis.extract_tables(path, debug=True)
+    for i, table in enumerate(tables):
+        print(f"Table {i}")
+        print(tabulate(table, headers="firstrow", tablefmt="grid"))
+    
     # result = table_analysis.return_table(path, debug=True)
     # print('the result: ', result)
 
