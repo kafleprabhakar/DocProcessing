@@ -35,12 +35,22 @@ def show_wait_destroy(winname, img):
 
 
 if __name__ == "__main__":
-    # file_in = 'multi-jurisdiction.pdf'
+    # file_in = 'multi-jurisdiction_filled2.pdf'
+    # file_in = 'bnm_sb.pdf'
     file_in = 'Exemption_filled.pdf'
 
     pdf_path = filled_fpath + file_in
     im_paths = util.pdf_to_image(pdf_path)
     path = im_paths[0]
+
+    # img = cv2.imread(path)
+    # blurred = cv2.blur(img, (5, 5))
+    # blurred2 = cv2.medianBlur(img, 3)
+    # blurredGaussian = cv2.GaussianBlur(img, (9, 9), 0)
+    # show_wait_destroy("img", img)
+    # show_wait_destroy("blurred 5x5", blurred)
+    # show_wait_destroy("blurred 3x3", blurred2)
+    # show_wait_destroy("blurred Gaussian", blurredGaussian)
 
     # for i, path in enumerate(im_paths):
     #     # Load image, grayscale, Gaussian blur, Otsu's threshold
@@ -59,7 +69,7 @@ if __name__ == "__main__":
     for i, table in enumerate(tables):
         print(f"Table {i}")
         print(tabulate(table, headers="firstrow", tablefmt="grid"))
-    
+
     # result = table_analysis.return_table(path, debug=True)
     # print('the result: ', result)
 

@@ -461,12 +461,12 @@ def get_table_segments(image: np.ndarray, debug: bool = False) -> Tuple[np.ndarr
     ver_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, ver_kernel_len))
     hor_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (hor_kernel_len, 1))
 
-    # Changing to iterations 1 impacts detection of blank lines
+    # 1 iteration of erosion and 2 iterations of dilation to make the lines more continuous
     vertical_lines = cv2.erode(img_bin, ver_kernel, iterations=1)
-    vertical_lines = cv2.dilate(vertical_lines, ver_kernel, iterations=1)
+    vertical_lines = cv2.dilate(vertical_lines, ver_kernel, iterations=2)
 
     horizontal_lines = cv2.erode(img_bin, hor_kernel, iterations=1)
-    horizontal_lines = cv2.dilate(horizontal_lines, hor_kernel, iterations=1)
+    horizontal_lines = cv2.dilate(horizontal_lines, hor_kernel, iterations=2)
 
     # Combine horizontal and vertical lines in a new third image, with both having same weight.
     img_vh = cv2.addWeighted(vertical_lines, 0.5, horizontal_lines, 0.5, 0.0)
@@ -565,7 +565,7 @@ def find_table(img_vh: np.ndarray) -> Optional[List[List[List[Box]]]]:
     boxes = sort_contours(boxes, method='top-to-bottom')
     # Filter only boxes of reasonable height
     boxes = [box for box in boxes if 50 < box.get_width() < 1000 and 25 < box.get_height() < 800]
-    
+
     # Filter out boxes which are duplicate or don't have any siblings
     boxes = remove_duplicate_boxes(boxes)
     table_boxes = filter_boxes_with_siblings(boxes)

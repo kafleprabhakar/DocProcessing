@@ -60,8 +60,7 @@ def get_document_segmentation(image, dilate_kernel_size: Tuple[int, int] = (10, 
         vertices = tuple(vertices[i] - padding[i] for i in range(4))
         boxes.append(Box(vertices))
         
-    # cv2.imshow('dilate', dilate)
-    # show_image(dilate, delay=0)
+    # show_image(dilate, name="Dilated", delay=0)
     return boxes
 
 
