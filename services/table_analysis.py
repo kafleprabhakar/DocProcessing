@@ -494,6 +494,7 @@ def boxes_to_table(table_boxes: List[Box]) -> List[List[Box]]:
         table_boxes: list of boxes sorted in top-to-bottom order
     """
     mean_height = np.mean([box.get_height() for box in table_boxes])
+    delta = mean_height / 10 # Making this a small enough constant should also work
 
     table = []
     current_row = [table_boxes[0]]
@@ -501,7 +502,7 @@ def boxes_to_table(table_boxes: List[Box]) -> List[List[Box]]:
 
     for i, box in enumerate(table_boxes[1:]):
         this_Y = box.get_Y_range()[0]
-        same_row_as_previous = this_Y <= previous_Y + mean_height / 2
+        same_row_as_previous = this_Y <= previous_Y + delta
 
         if not same_row_as_previous: # Start a new row
             table.append(current_row)
@@ -509,11 +510,11 @@ def boxes_to_table(table_boxes: List[Box]) -> List[List[Box]]:
 
         current_row.append(box)
 
-        if i == len(table_boxes) - 1:
-            table.append(current_row)
+        # if i == len(table_boxes) - 1:
+        #     table.append(current_row)
         
         previous_Y = this_Y
-    
+    table.append(current_row)
     return table
 
 
@@ -564,7 +565,7 @@ def find_table(img_vh: np.ndarray) -> Optional[List[List[List[Box]]]]:
     # Sort all the contours by top to bottom.
     boxes = sort_contours(boxes, method='top-to-bottom')
     # Filter only boxes of reasonable height
-    boxes = [box for box in boxes if 50 < box.get_width() < 1000 and 25 < box.get_height() < 800]
+    # boxes = [box for box in boxes if 50 < box.get_width() < 1000 and 25 < box.get_height() < 800]
 
     # Filter out boxes which are duplicate or don't have any siblings
     boxes = remove_duplicate_boxes(boxes)
