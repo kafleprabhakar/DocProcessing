@@ -119,6 +119,11 @@ def filter_boxes_with_siblings(boxes: List[Box]) -> List[Box]:
         
         if found_horizontal and found_vertical:
             boxes_with_siblings.append(box)
+        ## For debugging
+        # else:
+        #     print("Box {} was removed".format(box.get_box_endpoints()))
+        #     print('Found horizontal: ', found_horizontal)
+        #     print('Found vertical: ', found_vertical)
     
     return boxes_with_siblings
 
@@ -451,11 +456,14 @@ def get_table_segments(image: np.ndarray, debug: bool = False) -> Tuple[np.ndarr
         table-like structures and second element is the list of bounding boxes detected
     """
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # util.show_image(gray, 'grey', 0)
     thresh, img_bin = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-    img_bin = 255 - img_bin
+    # img_bin = 255 - img_bin
+    img_bin = cv2.bitwise_not(img_bin)
+    # util.show_image(img_bin, 'bin', 0)
 
     # Kernel lengths to extract horizontal and vertical lines
-    ver_kernel_len = np.array(image).shape[1] // 50
+    ver_kernel_len = np.array(image).shape[1] // 40
     hor_kernel_len = np.array(image).shape[0] // 40
     # Defining kernels to detect all vertical and horizontal lines of image
     ver_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, ver_kernel_len))
@@ -567,10 +575,12 @@ def find_table(img_vh: np.ndarray) -> Optional[List[List[List[Box]]]]:
     # Filter only boxes of reasonable height
     # boxes = [box for box in boxes if 50 < box.get_width() < 1000 and 25 < box.get_height() < 800]
 
+    # print(f'{len(boxes)} boxes before filtering')
     # Filter out boxes which are duplicate or don't have any siblings
     boxes = remove_duplicate_boxes(boxes)
+    # print(f'{len(boxes)} boxes after removing duplicate boxes')
     table_boxes = filter_boxes_with_siblings(boxes)
-    
+    # print(f'{len(table_boxes)} boxes after removing filtering for siblings')
 
     if len(table_boxes) == 0:
         print('Not a Table')
@@ -608,7 +618,8 @@ def read_tables(image: np.ndarray, table: List[List[List[Box]]], fpath: str = ""
         for cell in row:
             cell_content = ''
             for box in cell:
-                cell_content += util.read_text_in_patch(image, box)
+                if box.get_width() > 0 and box.get_height() > 0:
+                    cell_content += util.read_text_in_patch(image, box)
             row_content.append(cell_content.strip())
         table_contents.append(row_content)
 
@@ -620,7 +631,7 @@ def read_tables(image: np.ndarray, table: List[List[List[Box]]], fpath: str = ""
 
         final_data = {'uniform_table':empty_boxes, "df_file": fpath+csv_name}
 
-        jsonFile = fpath+template_name
+        jsonFile = fpath + template_name
 
         util.edit_json(jsonFile, final_data)
 
@@ -640,6 +651,7 @@ def extract_tables(path, outfile: str = None, debug: bool = False) -> List[List[
     im_color = cv2.imread(path)
     img_copy = im_color.copy()
     im_vh, table_boxes = get_table_segments(im_color, debug=debug)
+    # util.show_image(im_vh, "VH", 0)
     table_boxes.reverse() # since the boxes are detected bottom to top
 
     tables = []
@@ -660,3 +672,9 @@ def extract_tables(path, outfile: str = None, debug: bool = False) -> List[List[
         cv2.imwrite(outfile, img_copy)
     
     return tables
+
+
+    # data = pytesseract.image_to_data(img, output_type=pytesseract.Output.DICT)
+    # confidences = data['conf']
+    # texts = data['text']
+    # heights = data['height']

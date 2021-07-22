@@ -177,6 +177,8 @@ def read_text_in_patch(image: np.ndarray, patch: Box) -> str:
     patch_X = patch.get_X_range()
     patch_Y = patch.get_Y_range()
     patch_img = image[patch_Y[0]:patch_Y[1], patch_X[0]:patch_X[1]]
+    # print("Patch Shape", patch_img.shape)
+    # show_image(patch_img, name="Patch", delay=0)
 
     raw_text = pytesseract.image_to_string(patch_img)
     final_text = ''
