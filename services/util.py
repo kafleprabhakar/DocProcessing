@@ -205,3 +205,9 @@ def flatten_table(table: List[List[Cell]]) -> List[Box]:
     Flattens a table to give list of individual boxes
     """
     return [box for row in table for cell in row for box in cell.get_boxes()]
+
+def table_to_contents(table: List[List[Cell]]) -> List[List[str]]:
+    """
+    Given a table, returns only the contents of the table as a list of list of strings
+    """
+    return [[cell.get_content() for cell in row] for row in table]

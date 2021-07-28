@@ -142,3 +142,9 @@ class Cell:
 
     def is_empty(self) -> bool:
         return len(self.boxes) == 0
+
+    def _to_json(self):
+        return {
+            'boxes': [box._to_json() for box in self.boxes],
+            'content': self.content
+        }

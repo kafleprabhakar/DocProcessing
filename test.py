@@ -69,7 +69,8 @@ if __name__ == "__main__":
     tables = table_analysis.extract_tables(path, debug=True)
     for i, table in enumerate(tables):
         print(f"Table {i}")
-        print(tabulate(table, headers="firstrow", tablefmt="grid"))
+        table_contents = util.table_to_contents(table)
+        print(tabulate(table_contents, headers="firstrow", tablefmt="grid"))
 
     # result = table_analysis.return_table(path, debug=True)
     # print('the result: ', result)

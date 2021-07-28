@@ -57,7 +57,8 @@ def make_table_template(filepath, table_type="uniform"):
         #                             csv_name=csv_fname, template_name=template_fname)
         #     print('the result', result)
         for table in result:
-            print(tabulate(table, tablefmt='grid'))
+            table_contents = util.table_to_contents(table)
+            print(tabulate(table_contents, headers="firstrow", tablefmt="grid"))
     else:
         result = table_analysis.get_horizontal_lines(im_paths[0], output_fpath + template_fname)
     print("The final results: ")

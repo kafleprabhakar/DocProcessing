@@ -662,6 +662,7 @@ def extract_tables(path, outfile: str = None, debug: bool = False) -> List[List[
     # util.show_image(im_vh, "VH", 0)
     table_boxes.reverse() # since the boxes are detected bottom to top
 
+    table_contents = []
     tables = []
     for table in table_boxes:
         only_table = util.remove_all_except_boxes(im_vh, [table])
@@ -669,7 +670,8 @@ def extract_tables(path, outfile: str = None, debug: bool = False) -> List[List[
 
         if final_table:
             table_content = read_tables(im_color, final_table)
-            tables.append(table_content)
+            table_contents.append(table_content)
+            tables.append(final_table)
         
             all_cells = util.flatten_table(final_table)
             util.draw_contours(img_copy, all_cells)
