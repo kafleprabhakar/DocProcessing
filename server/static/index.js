@@ -7,6 +7,27 @@ const imgContainer = document.getElementById('image-container');
 
 formElement.addEventListener('submit', (e) => handleFormSubmit(e));
 
+
+const annotation = [
+  { 
+    "@context": "http://www.w3.org/ns/anno.jsonld",
+    "id": "#annotation-1",
+    "type": "Annotation",
+    "body": [{
+      "type": "TextualBody",
+      "value": "Comments Here"
+    }],
+    "target": {
+      "selector": [{
+        "type": "FragmentSelector",
+        "conformsTo": "http://www.w3.org/TR/media-frags/",
+        "value": "xywh=pixel:0,0,200,400"
+      }]
+    }
+  }
+]
+
+
 function makeClusterElement() {
   const cluster = document.createElement('div');
   cluster.classList.add("cluster", "py-3", "px-2", "border", "rounded", "my-3");
@@ -47,8 +68,19 @@ function addImage(imgPath) {
   imgContainer.innerHTML = '';
   const image = document.createElement('img');
   image.setAttribute('src', imgPath);
+  image.setAttribute('id', 'processed-img');
   image.classList.add('processed-image');
   imgContainer.appendChild(image);
+
+  var anno = Annotorious.init({
+    image: 'processed-img',
+    readOnly: true
+  });
+  anno.setAnnotations(annotation);
+  anno.on('createAnnotation', function(annotation) {
+    console.log('Created!');
+    console.log(annotation);
+  });
 }
 
 function json2Table(json) {
@@ -84,7 +116,7 @@ function json2Table(json) {
 
 function buildTable(table) {
   let rows = table.map(row => {
-    let tds = row.map(cell => `<td>${cell}</td>`).join("");
+    let tds = row.map(cell => `<td>${cell.content}</td>`).join("");
     return `<tr>${tds}</tr>`;
   }).join("");
   const htmlTable = `
@@ -98,12 +130,13 @@ function buildTable(table) {
 
 function handleFormSubmit(e) {
   e.preventDefault();
-  console.log(e);
+
   const toSend = new FormData(formElement);
   toSend.append('document', fileInput.files[0]);
+  
   submitBtn.classList.add('disabled');
-  console.log('the class list: ' + submitBtn.classList);
   submitBtn.disabled = true;
+  
   fetch(formElement.action, {
     method:'POST',
     body: toSend,
@@ -112,7 +145,8 @@ function handleFormSubmit(e) {
       // responseContainer.innerHTML = JSON.stringify(data, null, 2);
       makeHTMLForm(data.clusters);
       addImage(data.image);
-      console.log(data.clusters[2])
+      console.log('data clusters');
+      console.log(data.clusters);
     })
     .finally(() => {
       submitBtn.disabled = false;
@@ -120,3 +154,5 @@ function handleFormSubmit(e) {
     });
   
 }
+
+
