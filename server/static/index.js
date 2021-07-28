@@ -8,24 +8,48 @@ const imgContainer = document.getElementById('image-container');
 formElement.addEventListener('submit', (e) => handleFormSubmit(e));
 
 
-const annotation = [
-  { 
-    "@context": "http://www.w3.org/ns/anno.jsonld",
-    "id": "#annotation-1",
-    "type": "Annotation",
-    "body": [{
-      "type": "TextualBody",
-      "value": "Comments Here"
-    }],
-    "target": {
-      "selector": [{
-        "type": "FragmentSelector",
-        "conformsTo": "http://www.w3.org/TR/media-frags/",
-        "value": "xywh=pixel:0,0,200,400"
-      }]
+const templateAnnotation = { 
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "id": "#annotation-1",
+  "type": "Annotation",
+  "body": [{
+    "type": "TextualBody",
+    "value": "Comments Here"
+  }],
+  "target": {
+    "selector": [{
+      "type": "FragmentSelector",
+      "conformsTo": "http://www.w3.org/TR/media-frags/",
+      "value": "xywh=pixel:0,0,200,400"
+    }]
+  }
+}
+
+function makeAnnotationOfCell(cell) {
+  const annotations = [];
+  for (var box of cell.boxes) {
+    const annotation = JSON.parse(JSON.stringify(templateAnnotation));
+    annotation.id = 'annotation-' + Math.random().toString(36).substring(7);
+    annotation.body[0].value = cell.content;
+    const x = box[0][0];
+    const y = box[0][1];
+    const w = box[1][0] - box[0][0];
+    const h = box[1][1] - box[0][1];
+    annotation.target.selector[0].value = `xywh=pixel:${x},${y},${w},${h}`;
+    annotations.push(annotation);
+  }
+  return annotations;
+}
+
+function makeTableAnnotations(table) {
+  const annotations = [];
+  for (var row of table) {
+    for (var cell of row) {
+      annotations.push(...makeAnnotationOfCell(cell));
     }
   }
-]
+  return annotations;
+}
 
 
 function makeClusterElement() {
@@ -50,6 +74,12 @@ function makeCheckbox(label, status) {
 
 function makeHTMLForm(clusters) {
   htmlForm.innerHTML = '';
+  console.log("before initializing anno");
+  var anno = Annotorious.init({
+    image: 'processed-img',
+    readOnly: true
+  });
+  console.log("after initializing anno");
   for (var cluster of clusters) {
     const clusterElement = makeClusterElement();
     if (cluster.type === 'checkboxes') {
@@ -59,6 +89,10 @@ function makeHTMLForm(clusters) {
     } else if (cluster.type === 'uniform_table') {
       // clusterElement.append(json2Table(cluster.data));
       clusterElement.innerHTML = buildTable(cluster.data);
+      const tableAnnotations = makeTableAnnotations(cluster.data);
+      for (var annotation of tableAnnotations) {
+        anno.addAnnotation(annotation);
+      }
     }
     htmlForm.appendChild(clusterElement);
   }
@@ -72,15 +106,15 @@ function addImage(imgPath) {
   image.classList.add('processed-image');
   imgContainer.appendChild(image);
 
-  var anno = Annotorious.init({
-    image: 'processed-img',
-    readOnly: true
-  });
-  anno.setAnnotations(annotation);
-  anno.on('createAnnotation', function(annotation) {
-    console.log('Created!');
-    console.log(annotation);
-  });
+  // var anno = Annotorious.init({
+  //   image: 'processed-img',
+  //   readOnly: true
+  // });
+  // anno.setAnnotations([templateAnnotation]);
+  // anno.on('createAnnotation', function(annotation) {
+  //   console.log('Created!');
+  //   console.log(annotation);
+  // });
 }
 
 function json2Table(json) {
@@ -143,8 +177,8 @@ function handleFormSubmit(e) {
   }).then(response => response.json())
     .then(data => {
       // responseContainer.innerHTML = JSON.stringify(data, null, 2);
-      makeHTMLForm(data.clusters);
       addImage(data.image);
+      makeHTMLForm(data.clusters);
       console.log('data clusters');
       console.log(data.clusters);
     })

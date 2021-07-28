@@ -145,6 +145,6 @@ class Cell:
 
     def _to_json(self):
         return {
-            'boxes': [box._to_json() for box in self.boxes],
+            'boxes': [box.get_box_endpoints() for box in self.boxes],
             'content': self.content
         }
