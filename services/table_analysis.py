@@ -9,7 +9,7 @@ from typing import List, Tuple, Dict, Union, Optional
 from pytesseract import Output
 
 import util
-from base.classes import Box
+from base.classes import Box, Cell
 
 
 def remove_duplicate_boxes(boxes: List[Box]) -> List[Box]:
@@ -494,9 +494,9 @@ def get_table_segments(image: np.ndarray, debug: bool = False) -> Tuple[np.ndarr
     return img_vh, table_boxes
 
 
-def boxes_to_table(table_boxes: List[Box]) -> List[List[Box]]:
+def group_boxes_in_rows(table_boxes: List[Box]) -> List[List[Box]]:
     """
-    Arranges a list of boxes to table (list of rows of boxes)
+    Arranges a list of boxes to list of rows of boxes (not necessarily in order within rows)
     -----
     Args:
         table_boxes: list of boxes sorted in top-to-bottom order
@@ -526,7 +526,7 @@ def boxes_to_table(table_boxes: List[Box]) -> List[List[Box]]:
     return table
 
 
-def sort_table_cells(table: List[List[Box]]) -> List[List[List[Box]]]:
+def sort_table_cells(table: List[List[Box]]) -> List[List[Cell]]:
     """
     Given a table of rows of unsorted cells, sorts the cells in each row by their x-coordinate.
     -----
@@ -547,19 +547,19 @@ def sort_table_cells(table: List[List[Box]]) -> List[List[List[Box]]]:
         sorted_row = []
 
         for _ in range(countcol): # Each row will have countcol number of cells
-            sorted_row.append([])
+            sorted_row.append(Cell())
         
-        for cell in row:
-            diff = abs(center - (cell.get_X_range()[0] + cell.get_width() / 4))
+        for box in row:
+            diff = abs(center - (box.get_X_range()[0] + box.get_width() / 4))
             min_idx = np.argmin(diff)
-            sorted_row[min_idx].append(cell)
+            sorted_row[min_idx].add_box(box)
 
         final_table.append(sorted_row)
     
     return final_table
 
 
-def find_table(img_vh: np.ndarray) -> Optional[List[List[List[Box]]]]:
+def find_table(img_vh: np.ndarray) -> Optional[List[List[Cell]]]:
     """
     Given a grayscale image with only a table (and no content), returns the table as a list of rows where each row
     is a list of cells and each cell is represented by list of boxes it spans.
@@ -587,16 +587,17 @@ def find_table(img_vh: np.ndarray) -> Optional[List[List[List[Box]]]]:
         return None
     else:
         print('Table Found')
-        table = boxes_to_table(table_boxes)
-        table = sort_table_cells(table)
+        list_of_rows = group_boxes_in_rows(table_boxes)
+        table = sort_table_cells(list_of_rows)
         
         return table
 
 
-def read_tables(image: np.ndarray, table: List[List[List[Box]]], fpath: str = "",\
+def read_tables(image: np.ndarray, table: List[List[Cell]], fpath: str = "",\
                 csv_name: str = "", template_name: str = "") -> List[List[str]]:
     """
     Reads the content of the table in the given image
+    Also mutates the table to include the text in each cell
     -----
     Args:
         image: image to read table from
@@ -607,22 +608,29 @@ def read_tables(image: np.ndarray, table: List[List[List[Box]]], fpath: str = ""
     Returns:
         List of lists of strings representing the content of the table
     """
+    print('reading table content')
     EXCLUDE_SYMBOLS = ['!', '®', '™', '?', "|", "~"]
     # from every single image-based cell/box the strings are extracted via pytesseract and stored in a list
     pd.set_option('display.max_columns', None)
 
-    # empty_boxes = {}
+    empty_boxes = {}
     table_contents = []
     for row in table:
+        print('new row')
         row_content = []
         for cell in row:
+            print('new cell')
             cell_content = ''
-            for box in cell:
+            for box in cell.get_boxes():
                 if box.get_width() > 0 and box.get_height() > 0:
                     cell_content += util.read_text_in_patch(image, box)
-            row_content.append(cell_content.strip())
+                    print('finished reading a box')
+            cell_content = cell_content.strip()
+            row_content.append(cell_content)
+            cell.set_content(cell_content)
         table_contents.append(row_content)
-
+    
+    print('Finished reading table content')
     # Creating a dataframe of the generated OCR list
     df = pd.DataFrame(table_contents)
 

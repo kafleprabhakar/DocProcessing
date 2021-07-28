@@ -2,7 +2,7 @@ import os
 import json
 from pdf2image import convert_from_path
 from typing import List, Tuple, Any
-from base.classes import Box
+from base.classes import Box, Cell
 import numpy as np
 import cv2
 import math
@@ -200,8 +200,8 @@ def remove_all_except_boxes(image: np.ndarray, boxes: List[Box]) -> np.ndarray:
 
     return final_img
 
-def flatten_table(lst: List[List[List[Any]]]) -> List[Any]:
+def flatten_table(table: List[List[Cell]]) -> List[Box]:
     """
-    Flattens a list of lists
+    Flattens a table to give list of individual boxes
     """
-    return [item for sublist in lst for subsublist in sublist for item in subsublist]
+    return [box for row in table for cell in row for box in cell.get_boxes()]

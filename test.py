@@ -37,8 +37,8 @@ def show_wait_destroy(winname, img):
 if __name__ == "__main__":
     # file_in = 'multi-jurisdiction_filled2.pdf'
     # file_in = 'bnm_sb.pdf'
-    # file_in = 'Exemption_filled.pdf'
-    file_in = 'ye_img.pdf'
+    file_in = 'Exemption_filled.pdf'
+    # file_in = 'ye_img.pdf'
 
     pdf_path = filled_fpath + file_in
     im_paths = util.pdf_to_image(pdf_path)

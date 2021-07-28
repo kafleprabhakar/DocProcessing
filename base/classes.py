@@ -115,3 +115,30 @@ class Checkbox:
 
     def __repr__(self):
         return f'Checkbox({self.box}, label={self.label})'
+
+
+class Cell:
+    """ 
+    Represents a table cell 
+        boxes: list of boxes that the cell contains
+    """
+    def __init__(self):
+        """
+        """
+        self.boxes = []
+        self.content = ''
+    
+    def add_box(self, box: Box) -> None:
+        self.boxes.append(box)
+
+    def get_boxes(self) -> List[Box]:
+        return self.boxes
+    
+    def set_content(self, content: str) -> None:
+        self.content = content
+    
+    def get_content(self) -> str:
+        return self.content
+
+    def is_empty(self) -> bool:
+        return len(self.boxes) == 0
