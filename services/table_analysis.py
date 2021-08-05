@@ -291,9 +291,20 @@ def get_horizontal_lines(path, jsonFile=None):
 
     cv2.imshow('horizontal lines', img_resize)
     cv2.waitKey(2000)
-
+    uniform = extract_tables(path)[1]
 
     for cluster in cluster_lines:
+        x, y, xright, yright = cluster[0] #top/left most line
+        too_close=False
+        for box in uniform:
+            x1, x2 = box.get_X_range()
+            y1, y2 = box.get_Y_range()
+            if math.sqrt((x-x1)**2+(y-y1)**2)<100:
+                too_close=True
+                break
+        if too_close:
+            continue
+
 
         #cluster_0 = cluster_lines[0]
         # Extract boxes within the areas between each line
@@ -410,8 +421,8 @@ def get_horizontal_lines(path, jsonFile=None):
             cv2.imshow('rgb', img_resize)
             cv2.waitKey(1000)
 
-    print(label)
-    print(data)
+    print('label is',label)
+    print('data is',data)
 
     for i in (label):
         x,y,w,h = label[i]
@@ -663,11 +674,13 @@ def extract_tables(path, outfile: str = None, debug: bool = False) -> List[List[
     table_boxes.reverse() # since the boxes are detected bottom to top
 
     tables = []
+    compare= []
     for table in table_boxes:
         only_table = util.remove_all_except_boxes(im_vh, [table])
         final_table = find_table(only_table)
 
         if final_table:
+            compare.append(table)
             table_content = read_tables(im_color, final_table)
             tables.append(table_content)
         
@@ -679,7 +692,7 @@ def extract_tables(path, outfile: str = None, debug: bool = False) -> List[List[
     if outfile:
         cv2.imwrite(outfile, img_copy)
     
-    return tables
+    return tables, compare
 
 
     # data = pytesseract.image_to_data(img, output_type=pytesseract.Output.DICT)
