@@ -62,7 +62,18 @@ def process():
             'image': output_fpath + img_fname
         }
     elif action == 'non_uniform_table':
-        response = table_analysis.get_horizontal_lines(image_path)
+        img_fname = name + "_non_uniform.jpg"
+        response = table_analysis.get_horizontal_lines(image_path, outfile=OUTPUT_FOLDER + img_fname)
+        clusters = []
+        for cluster in response:
+            clusters.append({
+                'type': 'non_uniform_table',
+                'data': cluster
+            })
+        response = {
+            'clusters': clusters,
+            'image': output_fpath + img_fname
+        }
     else:
         template = request.files['template']
         template_filename = UPLOAD_FOLDER + template.filename

@@ -75,8 +75,8 @@ if __name__ == "__main__":
     # make_checkbox_template(filename)
     # extract_data("Wisconsin.pdf", "Wisconsin_blank.json")
 
-    filepath = filled_fpath + "bnm_sb.pdf"
-    make_table_template(filepath, table_type="uniform")
+    filepath = filled_fpath + "alaska_FILLED.pdf"
+    make_table_template(filepath, table_type="non_uniform")
     
     # for filename in os.listdir(blank_fpath):
     #     if filename.endswith(".pdf"):

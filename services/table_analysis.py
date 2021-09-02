@@ -209,46 +209,163 @@ def sort_horizontal_contours(contours):
     #return all_coord
 
 
-def get_horizontal_lines(path, jsonFile=None):
+### New Changes from Here ---------------------------
+
+def filter_and_sort(lines, height):
+    final_lines = []
+    for line in lines:
+        x1,y1,x2,y2=line
+        #print ('coordinates are', x1,y1,x2,y2)
+        if abs(y2-y1)>=height-10: #for some reason, the y2 value is less than the y1 value, so just to make sure i put the abs value
+            final_lines.append(line)
+    final_lines=sorted(final_lines,key = lambda x: x[0]) #sorts by their x1 value, which works (both x1 and x2 work since the lines are vertical)
+    #since the line type is a numpy array, i gotta specify the key as well
+    return final_lines
+
+
+def self_contained_extract(img):
+    # Replace this with path to your own tesseract.exe installation
+    
+    # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
+    data = pytesseract.image_to_data(img, output_type=pytesseract.Output.DICT)
+    confidences = data['conf']
+    texts = data['text']
+    heights = data['height']
+
+    # for debugging
+    #print(confidences)
+    #print(texts)
+    #print(heights)
+    print ('words are', confidences)
+    words = []
+    word_heights = []
+    # find the valid words and their heights
+    for index, confidence in enumerate(confidences):
+        if confidence != '-1' and not texts[index].isspace() and texts[index] != '':
+            words.append(texts[index])
+            word_heights.append(heights[index])
+
+    # Attempt 1: Check if key and value text sizes vary
+    biggest_diff = 0
+    biggest_diff_index = 0
+    for index in range(len(words) - 1):
+        if biggest_diff < abs(word_heights[index + 1] - word_heights[index]):
+            biggest_diff = abs(word_heights[index + 1] - word_heights[index])
+            biggest_diff_index = index
+    average = sum(word_heights) / (len(word_heights) if word_heights else 1)
+
+    # Attempt 1: Check if key and value text sizes vary
+
+    # if biggest jump/drop in height is substantial compared to average of height,
+    # split key/value using height as the metric
+    if biggest_diff > average * 0.1:
+        key_list = words[:biggest_diff_index + 1]
+        value_list = words[biggest_diff_index + 1:]
+        if len(key_list) != 0 and len(value_list) != 0:
+            key = ' '.join(key_list)
+            value = ' '.join(value_list)
+            #print('key is: ' + key)
+            #print('value is: ' + value)
+            return [key, value]
+
+    # Attempt 2: split key and value based on the largest space.
+
+    current_space_start_index = -1
+    current_space_length = 0
+    longest_space_start_index = -1
+    longest_space_length = 0
+    first_word_encountered = False
+
+    for index, confidence in enumerate(confidences):
+        if confidence != '-1' and not texts[index].isspace() and texts[index] != '':
+            first_word_encountered = True
+            if current_space_length > longest_space_length:
+                longest_space_start_index = current_space_start_index
+                longest_space_length = current_space_length
+            current_space_start_index = -1
+            current_space_length = 0
+        else:
+            if first_word_encountered:
+                if current_space_length == 0:
+                    current_space_start_index = index
+                    current_space_length += 1
+                else:
+                    current_space_length += 1
+
+    if longest_space_start_index > -1:
+        key_list = []
+        value_list = []
+        for index, confidence in enumerate(confidences):
+            if confidence != '-1' and not texts[index].isspace() and texts[index] != '':
+                if index < longest_space_start_index:
+                    key_list.append(texts[index])
+                else:
+                    value_list.append(texts[index])
+        key = ' '.join(key_list)
+        value = ' '.join(value_list)
+        #print('key is: ' + key)
+        #print('value is: ' + value)
+        return [key, value]
+    else:
+        #print('key and value cannot be determined')
+        return []
+
+
+
+def get_horizontal_lines(path: str = None , jsonFile=None, outfile=None):
     # goes after im_color
 
     img = cv2.imread(path, 0)
 
     im_color = cv2.imread(path)
     im_color_line = cv2.imread(path)
+    imcopy=cv2.imread(path)
 
     # thresholding the image to a binary image
     thresh, img_bin = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
     # inverting the image
     img_bin = 255 - img_bin
-
+    #added
+    #cv2.imshow('the bin',img_bin)
     # Length(width) of kernel as 100th of total width
     # kernel_len = np.array(img).shape[1] // 100
-    kernel_len = np.array(img).shape[1] // 50
+    kernel_len = np.array(img).shape[1] // 80 #added: makes sense that you divide by a lesser amount since the width of the image is shorter than height
     #kernel_len_hor = np.array(img).shape[0] // 40
-    kernel_len_hor = np.array(img).shape[0] // 60
+    kernel_len_hor = np.array(img).shape[0] // 100
     # Defining a vertical kernel to detect all vertical lines of image
-    ver_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, kernel_len))
+    ver_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, kernel_len_hor))
     # Defining a horizontal kernel to detect all horizontal lines of image
     # hor_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_len, 1))
     hor_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_len_hor, 1))
     # A kernel of 2x2
-
+    img_edge = cv2.Canny(img,100,200)
+    #cv2.imshow('cannyedge',img_edge)
+    #cv2.waitKey(0)
     # Use horizontal kernel to detect and save the horizontal lines in a jpg
     image_2 = cv2.erode(img_bin, hor_kernel, iterations=1)
     horizontal_lines = cv2.dilate(image_2, hor_kernel, iterations=2)
+    #plot = plt.imshow(image_2,cmap='gray')
+    #plt.show()
 
     image_ver = cv2.erode(img_bin, ver_kernel, iterations=1)
-    vertical_lines = cv2.dilate(image_ver, ver_kernel, iterations=1)
+    vertical_lines = cv2.dilate(image_ver, ver_kernel, iterations=2)
+    #plotting = plt.imshow(image_ver,cmap='gray')
+    #plt.show()
 
-    # cv2.imwrite("/Users/YOURPATH/horizontal.jpg", horizontal_lines)
+    cv2.imwrite(outfile, im_color)
     #print(PACKAGE_DIR)
     #cv2.imwrite(PACKAGE_DIR + '/horizontal_lines.jpg', horizontal_lines)
-
-
     lines = cv2.HoughLinesP(horizontal_lines, 30, math.pi/2, 0, None, 30, 1)
+    #verlines = cv2.HoughLinesP(vertical_lines, 30, math.pi/180, 0, None, 30, 1)
+
+    if lines is None:
+        lines=np.array([np.array([])])
     lines = lines.squeeze() # Why squeeze?
+    
+    
     lines = remove_duplicate_lines(lines)
+    #verlines = remove_duplicate_lines(verlines)
     #print(lines.shape)
     # filter for size
     lines2 = []
@@ -278,171 +395,150 @@ def get_horizontal_lines(path, jsonFile=None):
     label = {}
     seen = {}
 
+    print ('horizontal lines is', cluster_lines) #the lines are given in an intuitive format, x,y,x1,y2 where y2>y1
+
     for cluster in cluster_lines:
         for line in cluster:
             pt1 = (line[0], line[1])
             pt2 = (line[2], line[3])
             cv2.line(im_color_line, pt1, pt2, (0, 0, 255), 3)
+    
+    """for line in verlines:
+        pt1 = (line[0], line[1])
+        pt2 = (line[2], line[3])
+        cv2.line(imcopy, pt1, pt2, (0, 0, 255), 3)"""
 
     dims = im_color_line.shape
     img_resize = cv2.resize(im_color_line, (int(dims[1] / 3), int(dims[0] / 3)))
 
+    #verlinesimg = cv2.resize(imcopy,  (int(dims[1] / 3), int(dims[0] / 3)))
 
+    # cv2.imshow('horizontal lines', img_resize)
+    #cv2.imshow('vertical lines', verlinesimg)
+    # cv2.waitKey(0)
+    #uniform = extract_tables(path)[1]
 
-    cv2.imshow('horizontal lines', img_resize)
-    cv2.waitKey(2000)
+    data=[]
+    text=[]
+    labels=[]
+
+    
 
 
     for cluster in cluster_lines:
-
+        """topline=cluster[0]
+        bottomline=cluster[-1]
+        crop_image = img[topline[1]:bottomline[1], topline[0]:topline[2]]
+        print (self_contained_extract(crop_image))"""
+        
         #cluster_0 = cluster_lines[0]
         # Extract boxes within the areas between each line
+        kv_in_cell=0
+        total_cells=0
+        table={}
         for i in range(len(cluster)-1):
-            top_line = cluster[i]
-            bottom_line = cluster[i+1]
+            topline=cluster[i]
+            bottomline=cluster[i+1]
+            #print ('topline is',topline)
+            crop_image = img[topline[1]:bottomline[1], topline[0]:topline[2]]
 
-            crop_image = img[top_line[1]:bottom_line[1], top_line[0]:top_line[2]]
+            height=bottomline[1]-topline[1]
 
-            #data = pytesseract.image_to_boxes(crop_image)
-            #print(data)
+
             rgb = cv2.cvtColor(crop_image, cv2.COLOR_GRAY2RGB)
-
             small = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
+            _, bw = cv2.threshold(small, 128, 255.0, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
 
-            # threshold the image
-            _, bw = cv2.threshold(small, 0.0, 255.0, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+            ver_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, kernel_len_hor))
 
-            #cv2.imshow('bw', bw)
-
-            # get horizontal mask of large size since text are horizontal components
-            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (10, 2))
-
-            connected = cv2.morphologyEx(bw, cv2.MORPH_CLOSE, kernel)
+            image_ver = cv2.erode(bw, ver_kernel, iterations=2)
+            vertical_lines = cv2.dilate(image_ver, ver_kernel, iterations=1)
 
 
-            # find all the contours
-            contours, hierarchy, = cv2.findContours(connected.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-            #contours, hierarchy, = cv2.findContours(dilation, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+            verlines = cv2.HoughLinesP(vertical_lines, 30, math.pi/180, 0, None, 30, 1)
+            left_edge = np.array([[0,bottomline[1]-topline[1],0,0]])
+            endx=min(topline[2],bottomline[2])-max(topline[0],bottomline[0])
+            
+            right_edge = np.array([[endx,bottomline[3]-topline[3],endx,0]])
+            if verlines is None: #can't do if verlines!=None here for some reason
+                verlines=np.concatenate((left_edge,right_edge),axis=0)
+                print ('no verlines is',verlines)
+            else:
+                verlines=verlines.squeeze()
+                #for debugging
+                """print ('left edge is is', left_edge)
+                print ('left edge shape is',left_edge.shape)
+                print ('right edge is ',right_edge)
+                print ('right edge shape is ',right_edge.shape)
+                print ('verlines shape is',verlines.shape)"""
+                verlines=np.concatenate((left_edge,verlines,right_edge),axis=0)     
+            
+            verlines = remove_duplicate_lines(verlines)
+            verlines=filter_and_sort(verlines,height) 
+        
+            print ('verlines is',verlines)
 
-            #print(crop_image.shape)
-            # Segment the text lines
-            final_contours = []
-            for idx in range(len(contours)):
-                x, y, w, h = cv2.boundingRect(contours[idx])
-                #print(x,y,w,h)
-                #if w > 1000 or h < 5 or w < 5:
-                if h < 5 or w < 5 or (h > (bottom_line[1]-top_line[1])/2) or (w > (top_line[2]-top_line[0])/2):
-                    continue
+            cop = cv2.cvtColor(bw, cv2.COLOR_GRAY2BGR) #have to convert back to be able to see the colored lines
+            for line in verlines:
+                pt1 = (line[0], line[1])
+                pt2 = (line[2], line[3])
+                cv2.line(cop, pt1, pt2, (0, 255, 0), 1)
+            #cv2.imshow('drawn vert', cop)
+            #cv2.waitKey(0)
 
-                # check to see if the text box takes up
-                if h > abs((bottom_line[1]-top_line[1]) - (y+h)):
-                    continue
+            kernel = np.ones((1,1))
+            for k in range(len(verlines)-1):
+                
 
-                final_contours.append(contours[idx])
+                total_cells+=1
+                _, y1a, x, y = verlines[k]
+                _, y1b,x1,_ = verlines[k+1]
+                cell = bw[y:min(y1a,y1b),x:x1]
+                contours, hierarchy, = cv2.findContours(cell.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
-            #print(len(final_countors))
-            ## need to sort the contours in order going left to right
-            final_contours = sort_horizontal_contours(final_contours)
+                final_bound_boxes=[]
 
-            for idx in range(len(final_contours)):
-                #num_labels_per_line = len(final_countors)
-
-                x, y, w, h = final_contours[idx]
-                #print(x, y, w, h)
-
-                cv2.rectangle(rgb, (max(0,x-5), max(0,y-5)), (x + w+5, y + h+5), (0, 255, 0), 1)
-
-                dims = rgb.shape
-                img_resize = cv2.resize(rgb, (int(dims[1] / 1.2), int(dims[0] / 1.2)))
-
-                cv2.imshow('rgb', img_resize)
-                cv2.waitKey(1000)
-                # area of interest goes from bottom of label to lower line
-                # goes from same x value to just before the start of the next label
-                #print(crop_image.shape)
-                if idx != len(final_contours)-1:
-                    x_next, y_next, _, _ = final_contours[idx+1]
-
-                if idx == len(final_contours)-1 or y_next > y:
-                    #print('last')
-                    x_bound = [x-5, crop_image.shape[1]-20]
-                else:
-                    x_bound = [x-5, x_next-20]
-
-                #print(x_bound)
-
-                cv2.rectangle(rgb, (x_bound[0], y + h + 5), (x_bound[1], bottom_line[1]), (255, 0, 0), 2)
-
-                text = pytesseract.image_to_string(crop_image[max(0, y-7):y+h+7, max(0, x-7):x+w+7])
-                if len(text) != 0:
-                    print(text)
-                    if text in data:
-                        if text not in seen:
-                            seen[text] = 1
-                        else:
-                            seen[text] += 1
-
-                        text = text+'_'+str(seen[text])
-
-                    # need to scale up the coordinates to the total page
-                    # crop_image = img[top_line[1]:bottom_line[1], top_line[0]:top_line[2]]
-                    # current x value: added onto top_line[0]
-                    # current y value: added onto top_line[1]
-                    label_x = top_line[0] + max(0, x-5)
-                    label_y = top_line[1] + max(0, y-5)
-                    label[text] = [label_x, label_y, w+5, h+5]
-
-                    data_x = top_line[0] + x_bound[0]
-                    data_y = top_line[1] +  y + h + 5
-                    data[text] = [data_x, data_y, x_bound[1]-x_bound[0], (bottom_line[1]-top_line[1])-(y + h + 5)]
-
-                print()
-
-
-            text = pytesseract.image_to_string(crop_image)
-            print(text)
-            #cv2.imshow('crop image', crop_image)
-
-            #cv2.imshow('rgb', rgb)
-            dims = rgb.shape
-            img_resize = cv2.resize(rgb, (int(dims[1] / 1.2), int(dims[0] / 1.2)))
-
-            cv2.imshow('rgb', img_resize)
-            cv2.waitKey(1000)
-
-    print(label)
-    print(data)
-
-    for i in (label):
-        x,y,w,h = label[i]
-        cv2.rectangle(im_color, (x, y), (x+w, y+h), (0, 255, 0), 2)
-
-    for i in (data):
-        x,y,w,h = data[i]
-        cv2.rectangle(im_color, (x, y), (x+w, y+h), (255, 0, 0), 2)
-
-    # cv2.imwrite(fpath+outfile, im_color)
-
-    dims = im_color.shape
-    img_resize = cv2.resize(im_color, (int(dims[1] / 3), int(dims[0] / 3)))
-
-    cv2.imshow('horizontal lines', img_resize)
-    cv2.imwrite('testing.jpg', im_color)
-    print('Saving color image')
-    #cv2.imshow('horizontal lines 1', im_color)
-
-    cv2.waitKey(2000)
-    cv2.destroyAllWindows()
-
-    for k,v in data.items():
-        data[k] = [int(val) for val in v]
-
-    final_data = {'bounding box': data}
-
-    if jsonFile:
-        util.edit_json(jsonFile, final_data)
-
-    return label, data
+                """for contour in contours:
+                    x, y, w, h = cv2.boundingRect(contour)
+                    if h < 5 or w < 5 or (h > (min(y1a,y1b)-y)/2) or (w > (x1-x)/2):
+                        continue
+                    final_bound_boxes.append([x,y,w,h])
+                    
+                final_bound_boxes.sort() #just have to sort by x, which is the 0th element of each element
+                
+                new_vert=None
+                #print ('final boxes is',final_bound_boxes)
+                entirecell=True
+                for idx in range(len(final_bound_boxes)-1):
+                    x = final_bound_boxes[idx+1][0]
+                    x1, y, w, h = final_bound_boxes[idx]
+                    distance_from_prev=x-(x1+w)
+                    
+                    if distance_from_prev>30:
+                        splitting_line= x1+w+int(distance_from_prev/2)
+                        check=self_contained_extract(cell[:,(new_vert if new_vert else 0):splitting_line])
+                        if check:
+                            entirecell=False
+                            table[check[0]]=check[1]
+                            new_vert= splitting_line
+                            kv_in_cell=float('inf')
+                if entirecell:"""
+                kv = self_contained_extract(cell)
+                
+                
+                if kv:
+                    kv_in_cell+=1
+                    table[kv[0]]=kv[1]
+                    
+        
+        if total_cells==0:
+            print("there are no key, value pairs in this table")
+        elif kv_in_cell/total_cells>=0.1:
+            data.append(table)
+        else:
+            print( extract_tables(path,outfile=outfile))
+    return data
+  
 
 def get_table_segments(image: np.ndarray, debug: bool = False) -> Tuple[np.ndarray, List[Box]]:
     """

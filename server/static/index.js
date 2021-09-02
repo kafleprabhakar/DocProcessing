@@ -97,6 +97,11 @@ function makeHTMLForm(clusters) {
       for (var annotation of tableAnnotations) {
         anno.addAnnotation(annotation);
       }
+    } else if (cluster.type === 'non_uniform_table') {
+      console.log('non_uniform_table here')
+      const thisTable = buildKeyValueTable(cluster.data);
+      // clusterElement.appendChild(thisTable);
+      clusterElement.innerHTML = thisTable;
     }
     htmlForm.appendChild(clusterElement);
   }
@@ -119,6 +124,30 @@ function addImage(imgPath) {
   //   console.log('Created!');
   //   console.log(annotation);
   // });
+}
+
+function buildKeyValueTable(json) {
+  console.log('the json');
+  console.log(json);
+  const rows = [];
+  for (let [key, value] of Object.entries(json)) {
+    rows.push(`<tr><td>${key}</td><td>${value}</td></tr>`)
+  }
+  // let rows = json.map(row => {
+  //   return `<tr><td>${row}</td><td>${json[row]}</td></tr>`;
+  // })
+
+  const table = `
+	<table class="table table-striped table-bordered">
+		<thead>
+			<tr><th>Key</th><th>Value</th></tr>
+		<thead>
+		<tbody>
+			${rows}
+		<tbody>
+	<table>`;
+
+  return table;
 }
 
 function json2Table(json) {
