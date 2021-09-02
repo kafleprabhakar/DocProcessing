@@ -87,7 +87,7 @@ if __name__ == "__main__":
     # make_checkbox_template(filename)
     # extract_data("Wisconsin.pdf", "Wisconsin_blank.json")
 
-    filepath = filled_fpath + "alabama_FILLEDkk.pdf"
+    filepath = filled_fpath + "alaska_FILLED.pdf"
     make_table_template(filepath, table_type="nonuniform")
     
     #im_paths = util.pdf_to_image(filepath)

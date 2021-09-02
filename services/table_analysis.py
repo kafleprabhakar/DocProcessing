@@ -461,7 +461,7 @@ def get_horizontal_lines(path: str = None , jsonFile=None, outfile=None):
     # inverting the image
     img_bin = 255 - img_bin
     #added
-    cv2.imshow('the bin',img_bin)
+    #cv2.imshow('the bin',img_bin)
     # Length(width) of kernel as 100th of total width
     # kernel_len = np.array(img).shape[1] // 100
     kernel_len = np.array(img).shape[1] // 80 #added: makes sense that you divide by a lesser amount since the width of the image is shorter than height
@@ -474,18 +474,18 @@ def get_horizontal_lines(path: str = None , jsonFile=None, outfile=None):
     hor_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_len_hor, 1))
     # A kernel of 2x2
     img_edge = cv2.Canny(img,100,200)
-    cv2.imshow('cannyedge',img_edge)
-    cv2.waitKey(0)
+    #cv2.imshow('cannyedge',img_edge)
+    #cv2.waitKey(0)
     # Use horizontal kernel to detect and save the horizontal lines in a jpg
     image_2 = cv2.erode(img_bin, hor_kernel, iterations=1)
     horizontal_lines = cv2.dilate(image_2, hor_kernel, iterations=2)
-    plot = plt.imshow(image_2,cmap='gray')
-    plt.show()
+    #plot = plt.imshow(image_2,cmap='gray')
+    #plt.show()
 
     image_ver = cv2.erode(img_bin, ver_kernel, iterations=1)
     vertical_lines = cv2.dilate(image_ver, ver_kernel, iterations=2)
-    plotting = plt.imshow(image_ver,cmap='gray')
-    plt.show()
+    #plotting = plt.imshow(image_ver,cmap='gray')
+    #plt.show()
 
     # cv2.imwrite("/Users/YOURPATH/horizontal.jpg", horizontal_lines)
     #print(PACKAGE_DIR)
@@ -547,9 +547,9 @@ def get_horizontal_lines(path: str = None , jsonFile=None, outfile=None):
 
     #verlinesimg = cv2.resize(imcopy,  (int(dims[1] / 3), int(dims[0] / 3)))
 
-    cv2.imshow('horizontal lines', img_resize)
+    #cv2.imshow('horizontal lines', img_resize)
     #cv2.imshow('vertical lines', verlinesimg)
-    cv2.waitKey(2000)
+    #cv2.waitKey(2000)
     #uniform = extract_tables(path)[1]
 
     data=[]
@@ -632,7 +632,7 @@ def get_horizontal_lines(path: str = None , jsonFile=None, outfile=None):
 
                 final_bound_boxes=[]
 
-                for contour in contours:
+                """for contour in contours:
                     x, y, w, h = cv2.boundingRect(contour)
                     if h < 5 or w < 5 or (h > (min(y1a,y1b)-y)/2) or (w > (x1-x)/2):
                         continue
@@ -641,7 +641,7 @@ def get_horizontal_lines(path: str = None , jsonFile=None, outfile=None):
                 final_bound_boxes.sort() #just have to sort by x, which is the 0th element of each element
                 
                 new_vert=None
-                print ('final boxes is',final_bound_boxes)
+                #print ('final boxes is',final_bound_boxes)
                 entirecell=True
                 for idx in range(len(final_bound_boxes)-1):
                     x = final_bound_boxes[idx+1][0]
@@ -656,13 +656,13 @@ def get_horizontal_lines(path: str = None , jsonFile=None, outfile=None):
                             table[check[0]]=check[1]
                             new_vert= splitting_line
                             kv_in_cell=float('inf')
-                #if entirecell:
+                if entirecell:"""
                 kv = self_contained_extract(cell)
                 
                 
                 if kv:
-                        kv_in_cell+=1
-                        table[kv[0]]=kv[1]
+                    kv_in_cell+=1
+                    table[kv[0]]=kv[1]
                     
         
         if total_cells==0:
