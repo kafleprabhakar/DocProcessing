@@ -54,7 +54,7 @@ function makeTableAnnotations(table) {
 
 function makeClusterElement() {
   const cluster = document.createElement('div');
-  cluster.classList.add("cluster", "py-3", "px-2", "border", "rounded", "my-3");
+  cluster.classList.add("cluster", "py-3", "px-2", "border", "border-primary", "rounded", "my-3");
   return cluster
 }
 
@@ -88,7 +88,11 @@ function makeHTMLForm(clusters) {
       }
     } else if (cluster.type === 'uniform_table') {
       // clusterElement.append(json2Table(cluster.data));
-      clusterElement.innerHTML = buildTable(cluster.data);
+      const thisTable = buildTable(cluster.data);
+      const downloadableCsvLink = makeDownloadableCsv(cluster.data);
+      clusterElement.innerHTML = thisTable;
+      clusterElement.appendChild(downloadableCsvLink);
+      
       const tableAnnotations = makeTableAnnotations(cluster.data);
       for (var annotation of tableAnnotations) {
         anno.addAnnotation(annotation);
@@ -122,7 +126,7 @@ function json2Table(json) {
   console.log(json);
   // https://dev.to/boxofcereal/how-to-generate-a-table-from-json-data-with-es6-methods-2eel
   let cols = Object.keys(json[0]);
-  //Map over columns, make headers,join into string
+  //Map over columns, make headers, join into string
   let headerRow = cols
     .map(col => `<th>${col}</th>`)
     .join("");
@@ -161,6 +165,23 @@ function buildTable(table) {
   </table>`;
   return htmlTable;
 }
+
+
+function makeDownloadableCsv(table) {
+  const csv = table.map(row => {
+    let tds = row.map(cell => `${cell.content}`).join(",");
+    return `${tds}\n`;
+  }).join("");
+  const csvBlob = new Blob([csv], {type: "text/csv;charset=utf-8"});
+  const csvUrl = URL.createObjectURL(csvBlob);
+  const csvLink = document.createElement('a');
+  csvLink.setAttribute('href', csvUrl);
+  csvLink.setAttribute('download', 'table.csv');
+  csvLink.innerHTML = 'Download CSV';
+  csvLink.classList.add('btn', 'btn-outline-primary');
+  return csvLink;
+}
+
 
 function handleFormSubmit(e) {
   e.preventDefault();

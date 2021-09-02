@@ -1,0 +1,10 @@
+.a9s-annotation .a9s-inner {
+  fill: rgba(29, 126, 116, 0.2);
+}
+.a9s-annotation:hover .a9s-inner {
+  stroke: black;
+}
+
+.a9s-annotation.selected .a9s-inner {
+  fill: rgba(29, 126, 116, 0.5);
+}

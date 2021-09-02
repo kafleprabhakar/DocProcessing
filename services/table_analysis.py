@@ -593,8 +593,8 @@ def find_table(img_vh: np.ndarray) -> Optional[List[List[Cell]]]:
         return table
 
 
-def read_tables(image: np.ndarray, table: List[List[Cell]], fpath: str = "",\
-                csv_name: str = "", template_name: str = "") -> List[List[str]]:
+def read_tables(image: np.ndarray, table: List[List[Cell]],\
+                output_fpath: str = "", template_fpath: str = "") -> List[List[str]]:
     """
     Reads the content of the table in the given image
     Also mutates the table to include the text in each cell
@@ -602,9 +602,8 @@ def read_tables(image: np.ndarray, table: List[List[Cell]], fpath: str = "",\
     Args:
         image: image to read table from
         table: table to read
-        fpath: path of the folder to save the csv and template in
-        csv_name: name of the csv file to save
-        template_name: name of the template json file to save
+        output_fpath: path of the file to save the csv to
+        template_fpath: path of the file to save the template to
     Returns:
         List of lists of strings representing the content of the table
     """
@@ -634,26 +633,23 @@ def read_tables(image: np.ndarray, table: List[List[Cell]], fpath: str = "",\
     # Creating a dataframe of the generated OCR list
     df = pd.DataFrame(table_contents)
 
-    if len(fpath) > 0:
-        df.to_csv(fpath + csv_name)
-
-        final_data = {'uniform_table':empty_boxes, "df_file": fpath+csv_name}
-
-        jsonFile = fpath + template_name
-
-        util.edit_json(jsonFile, final_data)
+    if len(output_fpath) > 0:
+        df.to_csv(output_fpath)
+        final_data = {'uniform_table':empty_boxes, "df_file": output_fpath}
+        # util.edit_json(template_fpath, final_data)
 
     # return df.to_dict(orient='records')
     return df.to_numpy().tolist()
 
 
-def extract_tables(path, outfile: str = None, debug: bool = False) -> List[List[List[str]]]:
+def extract_tables(path, out_img: str = '', out_csv: str = '', debug: bool = False) -> List[List[List[str]]]:
     """
     Given a path to an image, extract the tables from the PDF and save them as a CSV file.
     -----
     Args:
         path: path to the image
-        outfile: path to the output CSV file
+        out_img: path to the output image file
+        out_csv: path to the output csv file
         debug: whether or not to display the tables
     """
     im_color = cv2.imread(path)
@@ -669,7 +665,7 @@ def extract_tables(path, outfile: str = None, debug: bool = False) -> List[List[
         final_table = find_table(only_table)
 
         if final_table:
-            table_content = read_tables(im_color, final_table)
+            table_content = read_tables(im_color, final_table, output_fpath=out_csv)
             table_contents.append(table_content)
             tables.append(final_table)
         
@@ -678,8 +674,8 @@ def extract_tables(path, outfile: str = None, debug: bool = False) -> List[List[
     
     if debug:
         util.show_image(img_copy, delay=0)
-    if outfile:
-        cv2.imwrite(outfile, img_copy)
+    if out_img:
+        cv2.imwrite(out_img, img_copy)
     
     return tables
 

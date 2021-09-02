@@ -11,6 +11,7 @@
     rel="stylesheet" integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x"
     crossorigin="anonymous" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@recogito/annotorious@2.5.1/dist/annotorious.min.css">
+  <link rel="stylesheet" href="/static/style.css">
 
   <style>
     .processed-image {
@@ -41,7 +42,20 @@
               <label for="page" class="form-label">Page number</label>
               <input class="form-control" type="number" id="page" name="page" required value="1">
             </div>
-            <div class="type-radio col-auto">
+            <div class="btn-group col-auto" role="group" aria-label="Algorithm Selection">
+              <input type="radio" class="btn-check" name="actionType" id="btnradio1" autocomplete="off" value="checkbox" checked>
+              <label class="btn btn-outline-primary" for="btnradio1">Checkbox Detection</label>
+            
+              <input type="radio" class="btn-check" name="actionType" id="btnradio2" autocomplete="off" value="uniform_table">
+              <label class="btn btn-outline-primary" for="btnradio2">Regular Table Detection</label>
+            
+              <input type="radio" class="btn-check" name="actionType" id="btnradio3" autocomplete="off" value="non_uniform_table" disabled>
+              <label class="btn btn-outline-primary" for="btnradio3">Irregular Table Detection</label>
+            
+              <input type="radio" class="btn-check" name="actionType" id="btnradio4" autocomplete="off" value="blank_space" disabled>
+              <label class="btn btn-outline-primary" for="btnradio4">Blank Space Detection</label>
+            </div>
+            <!-- <div class="type-radio col-auto">
               <div class="form-check form-check-inline">
                 <input class="form-check-input" type="radio" name="actionType" value="checkbox" checked id="inlineRadio1">
                 <label class="form-check-label" for="inlineRadio1">Checkbox Detection</label>
@@ -58,7 +72,7 @@
                 <input class="form-check-input" type="radio" name="actionType" value="extract" id="inlineRadio4" disabled>
                 <label class="form-check-label" for="inlineRadio4">Blank Space Detection</label>
               </div>
-            </div>
+            </div> -->
             <!-- <div class="mb-3">
               <label for="template" class="form-label">Choose Template</label>
               <input class="form-control" type="file" id="template" name="template">
@@ -95,7 +109,7 @@
       </div>
     </div>
   </div>
-  <script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>
+  <!-- <script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script> -->
   <script src="https://cdn.jsdelivr.net/npm/@recogito/annotorious@2.5.1/dist/annotorious.min.js"></script>
   <script src="/static/index.js"></script>
 </body>
