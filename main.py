@@ -5,6 +5,9 @@ from services import checkbox_detect, table_analysis, util, template_extract
 import json
 import random
 from tabulate import tabulate
+import pytesseract
+import cv2
+
 
 cwd = os.getcwd()
 # blank_fpath = 'Ryan_data/ExemptionCertificatesRyan/'
@@ -47,10 +50,13 @@ def make_table_template(filepath, table_type="uniform"):
     template_fname = name + "_" + table_type + '.json'
 
     im_paths = util.pdf_to_image(filepath)
+    
+    #typ = table_analysis.check_table_type(im_paths[0])
 
     if table_type == "uniform":
-        result, compare = table_analysis.extract_tables(im_paths[2], outfile=img_path, debug=True)
-        # result = table_analysis.return_table(im_paths[0], outfile = img_path) #check for uniform table
+        result, compare = table_analysis.extract_tables(im_paths[0], outfile=img_path, debug=True)
+        # result = table_analysis.return_table(im_paths[0], outfile = img_path)
+        #  #check for uniform table
 
         # if len(result) > 0:
         #     result = table_analysis.read_tables(im_paths[0], result[0], result[1], fpath=output_fpath, #+ 'table/',
@@ -59,11 +65,18 @@ def make_table_template(filepath, table_type="uniform"):
         for table in result:
             print(tabulate(table, tablefmt='grid'))
     else:
-        result = table_analysis.get_horizontal_lines(im_paths[0], output_fpath + template_fname)
+        kv = table_analysis.get_horizontal_lines(im_paths[0], output_fpath + template_fname,outfile=img_path)
+        """for k,v in kv.items():
+            print (k)
+            print (v)
+        for c in text:
+            print (c)
+        for label in labels:
+            print (label)"""
     print("The final results: ")
-    print(result)
+    print(kv)
 
-# def extract_table_data(filename, template_fname):
+
 
 
 if __name__ == "__main__":
@@ -74,8 +87,11 @@ if __name__ == "__main__":
     # make_checkbox_template(filename)
     # extract_data("Wisconsin.pdf", "Wisconsin_blank.json")
 
-    filepath = filled_fpath + "bnm_sb.pdf"
-    make_table_template(filepath, table_type="uniform")
+    filepath = filled_fpath + "alabama_FILLEDkk.pdf"
+    make_table_template(filepath, table_type="nonuniform")
+    
+    #im_paths = util.pdf_to_image(filepath)
+    #self_contained_extract(im_paths[0])
     
     # for filename in os.listdir(blank_fpath):
     #     if filename.endswith(".pdf"):
